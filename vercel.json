@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "buildCommand": "npm run build:client",
+  "buildCommand": "npm run vercel-build",
   "outputDirectory": "client/dist",
   "functions": {
     "api/index.ts": {
-      "includeFiles": "server/prisma/**"
+      "includeFiles": "node_modules/.prisma/client/**"
     }
   },
   "rewrites": [
