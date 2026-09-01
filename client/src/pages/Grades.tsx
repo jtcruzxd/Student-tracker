@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Plus, Trash2, Pencil, BookOpen, Search, LayoutGrid, List, AlertTriangle, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
+import { Plus, Trash2, Pencil, BookOpen, Search, LayoutGrid, List, AlertTriangle, ArrowDownAZ, ArrowUpAZ, ChevronUp, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { gradesApi, classesApi, studentsApi, activitiesApi } from '../api';
@@ -234,8 +234,20 @@ export default function Grades() {
   const [search, setSearch] = useState('');
   const [filterClass, setFilterClass] = useState('');
   const [filterCat, setFilterCat] = useState('');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc'); // A→Z by student name
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc'); // A→Z by student name (quick toggle)
+  const [sortField, setSortField] = useState<'student' | 'date'>('student'); // column sort
+  const [sortColDir, setSortColDir] = useState<'asc' | 'desc'>('asc'); // column sort direction
   const [showAtRisk, setShowAtRisk] = useState(false); // ≤65% grades
+
+  // Toggle column sort — click same column to flip direction, click different column to set asc
+  const toggleColSort = (field: 'student' | 'date') => {
+    if (sortField === field) {
+      setSortColDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortColDir('asc');
+    }
+  };
   const [view, setView] = useState<'table' | 'cards'>('table');
 
   const [modal, setModal] = useState<'add' | 'edit' | null>(null);
@@ -270,9 +282,15 @@ export default function Grades() {
       (!showAtRisk || g.percentage <= 65)
     )
     .sort((a, b) => {
+      if (sortField === 'date') {
+        const diff = new Date(a.date).getTime() - new Date(b.date).getTime();
+        return sortColDir === 'asc' ? diff : -diff;
+      }
+      // sort by student name
       const nameA = a.student?.fullName ?? '';
       const nameB = b.student?.fullName ?? '';
-      return sortDir === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+      const cmp = nameA.localeCompare(nameB);
+      return sortColDir === 'asc' ? cmp : -cmp;
     });
 
   const openAdd = () => {
@@ -365,12 +383,12 @@ export default function Grades() {
 
         {/* A→Z / Z→A toggle */}
         <button
-          className={`btn-secondary btn-sm flex items-center gap-1.5 ${sortDir === 'asc' ? 'border-blue-300 text-blue-700 bg-blue-50' : 'border-purple-300 text-purple-700 bg-purple-50'}`}
-          onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+          className={`btn-secondary btn-sm flex items-center gap-1.5 ${sortColDir === 'asc' ? 'border-blue-300 text-blue-700 bg-blue-50' : 'border-purple-300 text-purple-700 bg-purple-50'}`}
+          onClick={() => { setSortField('student'); setSortColDir(d => d === 'asc' ? 'desc' : 'asc'); }}
           title="Sort by student name"
         >
-          {sortDir === 'asc' ? <ArrowDownAZ size={15} /> : <ArrowUpAZ size={15} />}
-          {sortDir === 'asc' ? 'A → Z' : 'Z → A'}
+          {sortField === 'student' && sortColDir === 'desc' ? <ArrowUpAZ size={15} /> : <ArrowDownAZ size={15} />}
+          {sortField === 'student' ? (sortColDir === 'asc' ? 'A → Z' : 'Z → A') : 'A → Z'}
         </button>
 
         {/* At-risk toggle */}
@@ -429,8 +447,30 @@ export default function Grades() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="table-th">Date</th>
-                  <th className="table-th">Student</th>
+                  {/* Sortable: DATE */}
+                  <th
+                    className="table-th cursor-pointer select-none hover:bg-gray-100"
+                    onClick={() => toggleColSort('date')}
+                  >
+                    <span className="flex items-center gap-1">
+                      Date
+                      {sortField === 'date'
+                        ? sortColDir === 'asc' ? <ChevronUp size={13} className="text-blue-500" /> : <ChevronDown size={13} className="text-blue-500" />
+                        : <ChevronUp size={13} className="opacity-20" />}
+                    </span>
+                  </th>
+                  {/* Sortable: STUDENT */}
+                  <th
+                    className="table-th cursor-pointer select-none hover:bg-gray-100"
+                    onClick={() => toggleColSort('student')}
+                  >
+                    <span className="flex items-center gap-1">
+                      Student
+                      {sortField === 'student'
+                        ? sortColDir === 'asc' ? <ChevronUp size={13} className="text-blue-500" /> : <ChevronDown size={13} className="text-blue-500" />
+                        : <ChevronUp size={13} className="opacity-20" />}
+                    </span>
+                  </th>
                   <th className="table-th">Activity</th>
                   <th className="table-th">Category</th>
                   <th className="table-th">Score</th>
