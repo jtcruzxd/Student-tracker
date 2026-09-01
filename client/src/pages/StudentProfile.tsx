@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  ArrowLeft, User, Mail, Phone, GraduationCap, CalendarCheck,
-  BookOpen, ClipboardList, TrendingUp, CheckCircle, XCircle,
+  ArrowLeft, Mail, Phone, GraduationCap, CalendarCheck,
+  BookOpen, ClipboardList, CheckCircle, XCircle,
   Clock, AlertTriangle, Pencil, Trash2
 } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
-import { studentsApi, gradesApi } from '../api';
-import type { Student, GradeSummary, GradeCategory } from '../types';
+import { studentsApi, gradesApi, classesApi } from '../api';
+import type { Student, GradeSummary, GradeCategory, Class } from '../types';
 import { PageLoader } from '../components/ui/Spinner';
 import { AttendanceBadge, GradeBadge, PercentageBadge } from '../components/ui/StatusBadge';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import Modal from '../components/ui/Modal';
 
 const CATEGORY_COLORS: Record<GradeCategory, string> = {
   QUIZ: '#3b82f6', ASSIGNMENT: '#8b5cf6', RECITATION: '#eab308',
@@ -33,18 +34,56 @@ export default function StudentProfile() {
   const navigate = useNavigate();
   const [student, setStudent] = useState<Student | null>(null);
   const [summary, setSummary] = useState<GradeSummary | null>(null);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ studentId: '', fullName: '', email: '', guardianContact: '', classId: '' });
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'attendance' | 'grades' | 'activities'>('attendance');
 
-  useEffect(() => {
+  const loadStudent = () => {
     if (!id) return;
-    Promise.all([studentsApi.get(id), gradesApi.summary(id)])
-      .then(([s, sum]) => { setStudent(s); setSummary(sum); })
+    Promise.all([studentsApi.get(id), gradesApi.summary(id), classesApi.list()])
+      .then(([s, sum, c]) => { setStudent(s); setSummary(sum); setClasses(c); })
       .catch(() => toast.error('Failed to load student'))
       .finally(() => setLoading(false));
-  }, [id]);
+  };
+
+  useEffect(() => { loadStudent(); }, [id]);
+
+  const openEdit = () => {
+    if (!student) return;
+    setEditForm({
+      studentId: student.studentId,
+      fullName: student.fullName,
+      email: student.email ?? '',
+      guardianContact: student.guardianContact ?? '',
+      classId: student.classId,
+    });
+    setEditErrors({});
+    setEditOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    const errs: Record<string, string> = {};
+    if (!editForm.studentId.trim()) errs.studentId = 'Student ID is required';
+    if (!editForm.fullName.trim()) errs.fullName = 'Full name is required';
+    if (!editForm.classId) errs.classId = 'Class is required';
+    if (Object.keys(errs).length) { setEditErrors(errs); return; }
+    setSaving(true);
+    try {
+      await studentsApi.update(student!.id, { ...editForm, email: editForm.email || undefined });
+      toast.success('Student updated');
+      setEditOpen(false);
+      setLoading(true);
+      loadStudent();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to save');
+    } finally { setSaving(false); }
+  };
 
   const handleDelete = async () => {
     if (!student) return;
@@ -91,9 +130,9 @@ export default function StudentProfile() {
           <ArrowLeft size={16} /> Back to Students
         </Link>
         <div className="flex gap-2">
-          <Link to={`/students/${student.id}/edit`} className="btn-secondary btn-sm">
+          <button className="btn-secondary btn-sm" onClick={openEdit}>
             <Pencil size={14} /> Edit
-          </Link>
+          </button>
           <button className="btn-danger btn-sm" onClick={() => setDeleteOpen(true)}>
             <Trash2 size={14} /> Delete
           </button>
@@ -337,6 +376,51 @@ export default function StudentProfile() {
         message={`Are you sure you want to delete ${student.fullName}? This will permanently remove all their records.`}
         loading={deleting}
       />
+
+      {/* Edit Student Modal */}
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Student" size="md">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Student ID *</label>
+              <input className={`input ${editErrors.studentId ? 'input-error' : ''}`}
+                value={editForm.studentId} onChange={e => setEditForm(f => ({ ...f, studentId: e.target.value }))} />
+              {editErrors.studentId && <p className="text-xs text-red-500 mt-1">{editErrors.studentId}</p>}
+            </div>
+            <div>
+              <label className="label">Class *</label>
+              <select className={`input ${editErrors.classId ? 'input-error' : ''}`}
+                value={editForm.classId} onChange={e => setEditForm(f => ({ ...f, classId: e.target.value }))}>
+                <option value="">Select class…</option>
+                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              {editErrors.classId && <p className="text-xs text-red-500 mt-1">{editErrors.classId}</p>}
+            </div>
+          </div>
+          <div>
+            <label className="label">Full Name *</label>
+            <input className={`input ${editErrors.fullName ? 'input-error' : ''}`}
+              value={editForm.fullName} onChange={e => setEditForm(f => ({ ...f, fullName: e.target.value }))} />
+            {editErrors.fullName && <p className="text-xs text-red-500 mt-1">{editErrors.fullName}</p>}
+          </div>
+          <div>
+            <label className="label">Email</label>
+            <input className="input" type="email" value={editForm.email}
+              onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} placeholder="student@school.edu" />
+          </div>
+          <div>
+            <label className="label">Guardian Contact</label>
+            <input className="input" value={editForm.guardianContact}
+              onChange={e => setEditForm(f => ({ ...f, guardianContact: e.target.value }))} placeholder="09xxxxxxxxx" />
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 mt-6">
+          <button className="btn-secondary" onClick={() => setEditOpen(false)} disabled={saving}>Cancel</button>
+          <button className="btn-primary" onClick={handleSaveEdit} disabled={saving}>
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
