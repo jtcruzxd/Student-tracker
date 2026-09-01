@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Plus, Trash2, Pencil, Filter, BookOpen, Search, LayoutGrid, List } from 'lucide-react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Plus, Trash2, Pencil, Filter, BookOpen, Search, LayoutGrid, List, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { gradesApi, classesApi, studentsApi } from '../api';
@@ -28,10 +28,108 @@ function validate(form: typeof INIT_FORM) {
   return e;
 }
 
-function GradeForm({ form, setForm, students, errors }: {
+// Default subject list — shown in dropdown even before any grades exist
+const DEFAULT_SUBJECTS = [
+  'Mathematics', 'English', 'Science', 'Filipino',
+  'Araling Panlipunan', 'MAPEH', 'TLE/TVL', 'ESP/Values Education',
+  'Computer Science', 'Physics', 'Chemistry', 'Biology',
+  'History', 'Statistics', 'Calculus', 'Literature',
+];
+
+// Combo box: shows dropdown suggestions + allows free-text input
+function SubjectComboBox({ value, onChange, existingTitles, error }: {
+  value: string;
+  onChange: (v: string) => void;
+  existingTitles: string[];
+  error?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState(value);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Keep internal query in sync when form resets
+  useEffect(() => { setQuery(value); }, [value]);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Merge default subjects + unique titles from existing grades, deduped
+  const allSubjects = Array.from(new Set([
+    ...DEFAULT_SUBJECTS,
+    ...existingTitles,
+  ])).sort();
+
+  // Filter by current query
+  const suggestions = allSubjects.filter(s =>
+    !query.trim() || s.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const select = (s: string) => {
+    setQuery(s);
+    onChange(s);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="relative">
+        <input
+          className={`input pr-9 ${error ? 'input-error' : ''}`}
+          value={query}
+          placeholder="Select or type a subject…"
+          onChange={e => { setQuery(e.target.value); onChange(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          autoComplete="off"
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          onClick={() => setOpen(v => !v)}
+        >
+          <ChevronDown size={15} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
+
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+          {suggestions.map(s => (
+            <li
+              key={s}
+              className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors ${
+                s === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+              }`}
+              onMouseDown={e => { e.preventDefault(); select(s); }}
+            >
+              {s}
+            </li>
+          ))}
+          {/* If typed value isn't in the list, offer it as a custom option */}
+          {query.trim() && !allSubjects.some(s => s.toLowerCase() === query.toLowerCase()) && (
+            <li
+              className="px-3 py-2 text-sm cursor-pointer text-blue-600 hover:bg-blue-50 border-t border-gray-100 italic"
+              onMouseDown={e => { e.preventDefault(); select(query.trim()); }}
+            >
+              Use "{query.trim()}"
+            </li>
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function GradeForm({ form, setForm, students, existingTitles, errors }: {
   form: typeof INIT_FORM;
   setForm: (f: typeof INIT_FORM) => void;
   students: Student[];
+  existingTitles: string[];
   errors: Record<string, string>;
 }) {
   const set = (k: keyof typeof INIT_FORM, v: string) => setForm({ ...form, [k]: v });
@@ -47,9 +145,13 @@ function GradeForm({ form, setForm, students, errors }: {
         {errors.studentId && <p className="text-xs text-red-500 mt-1">{errors.studentId}</p>}
       </div>
       <div>
-        <label className="label">Title / Activity Name *</label>
-        <input className={`input ${errors.title ? 'input-error' : ''}`} value={form.title}
-          onChange={e => set('title', e.target.value)} placeholder="e.g. Quiz 1 – Linear Equations" />
+        <label className="label">Subject / Activity Name *</label>
+        <SubjectComboBox
+          value={form.title}
+          onChange={v => set('title', v)}
+          existingTitles={existingTitles}
+          error={errors.title}
+        />
         {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -170,6 +272,9 @@ export default function Grades() {
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Failed to delete'); }
     finally { setDeleting(false); }
   };
+
+  // Unique titles from existing grades (for autocomplete)
+  const existingTitles = Array.from(new Set(grades.map(g => g.title))).sort();
 
   // Summary cards by category
   const catSummary = CATEGORIES.map(cat => {
@@ -317,7 +422,7 @@ export default function Grades() {
       )}
 
       <Modal open={modal !== null} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Grade' : 'Edit Grade'} size="md">
-        <GradeForm form={form} setForm={setForm} students={students} errors={formErrors} />
+        <GradeForm form={form} setForm={setForm} students={students} existingTitles={existingTitles} errors={formErrors} />
         <div className="flex justify-end gap-3 mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)} disabled={saving}>Cancel</button>
           <button className="btn-primary" onClick={handleSave} disabled={saving}>
