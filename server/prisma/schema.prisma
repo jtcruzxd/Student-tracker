@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Class {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  gradeLevel  String
+  section     String?
+  schoolYear  String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  students    Student[]
+  activities  Activity[]
+  attendanceSessions AttendanceSession[]
+}
+
+model Student {
+  id              String    @id @default(cuid())
+  studentId       String    @unique
+  fullName        String
+  email           String?
+  guardianContact String?
+  classId         String
+  class           Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  attendanceRecords AttendanceRecord[]
+  gradeEntries    GradeEntry[]
+  activityScores  ActivityScore[]
+  archived        Boolean   @default(false)
+}
+
+model AttendanceSession {
+  id        String    @id @default(cuid())
+  date      DateTime
+  classId   String
+  class     Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  records   AttendanceRecord[]
+
+  @@unique([date, classId])
+}
+
+/// status: PRESENT | ABSENT | LATE | EXCUSED
+model AttendanceRecord {
+  id        String   @id @default(cuid())
+  status    String   @default("PRESENT")
+  notes     String?
+  sessionId String
+  session   AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sessionId, studentId])
+}
+
+/// category: QUIZ | ASSIGNMENT | RECITATION | EXAM | PROJECT | CUSTOM
+model GradeEntry {
+  id            String   @id @default(cuid())
+  title         String
+  category      String
+  score         Float
+  maxScore      Float
+  percentage    Float
+  remarks       String?
+  date          DateTime
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  activityId    String?
+  activity      Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+/// type: QUIZ | ASSIGNMENT | RECITATION | EXAM | PROJECT
+model Activity {
+  id           String    @id @default(cuid())
+  title        String
+  type         String
+  description  String?
+  dueDate      DateTime?
+  activityDate DateTime?
+  maxScore     Float
+  classId      String
+  class        Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  scores       ActivityScore[]
+  gradeEntries GradeEntry[]
+}
+
+model ActivityScore {
+  id         String   @id @default(cuid())
+  score      Float?
+  submitted  Boolean  @default(false)
+  notes      String?
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([studentId, activityId])
+}
