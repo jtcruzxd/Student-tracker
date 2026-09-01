@@ -15,13 +15,17 @@ import { AttendanceBadge, GradeBadge, PercentageBadge } from '../components/ui/S
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Modal from '../components/ui/Modal';
 
+// Auto-capitalize each word in a name
+const toTitleCase = (s: string) =>
+  s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+
 const CATEGORY_COLORS: Record<GradeCategory, string> = {
-  QUIZ: '#3b82f6', ASSIGNMENT: '#8b5cf6', RECITATION: '#eab308',
-  EXAM: '#ef4444', PROJECT: '#22c55e', CUSTOM: '#6b7280',
+  QUIZ: '#D96868', ASSIGNMENT: '#8b5cf6', RECITATION: '#eab308',
+  EXAM: '#e07e7e', PROJECT: '#689D4B', CUSTOM: '#6b7280',
 };
 
 function AttendanceBar({ pct }: { pct: number }) {
-  const color = pct >= 90 ? 'bg-green-500' : pct >= 75 ? 'bg-blue-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-red-500';
+  const color = pct >= 90 ? 'bg-sage-500' : pct >= 75 ? 'bg-sky-500' : pct >= 60 ? 'bg-amber-500' : 'bg-primary-500';
   return (
     <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
       <div className={`${color} h-2.5 rounded-full transition-all duration-500`} style={{ width: `${Math.min(pct, 100)}%` }} />
@@ -75,7 +79,11 @@ export default function StudentProfile() {
     if (Object.keys(errs).length) { setEditErrors(errs); return; }
     setSaving(true);
     try {
-      await studentsApi.update(student!.id, { ...editForm, email: editForm.email || undefined });
+      await studentsApi.update(student!.id, {
+        ...editForm,
+        fullName: toTitleCase(editForm.fullName),
+        email: editForm.email || undefined,
+      });
       toast.success('Student updated');
       setEditOpen(false);
       setLoading(true);
@@ -118,7 +126,7 @@ export default function StudentProfile() {
 
   const tabs = [
     { key: 'attendance', label: 'Attendance', icon: <CalendarCheck size={15} /> },
-    { key: 'grades', label: 'Grades', icon: <BookOpen size={15} /> },
+    { key: 'grades',     label: 'Grades',     icon: <BookOpen size={15} /> },
     { key: 'activities', label: 'Activities', icon: <ClipboardList size={15} /> },
   ] as const;
 
@@ -142,7 +150,8 @@ export default function StudentProfile() {
       {/* Profile card */}
       <div className="card p-6">
         <div className="flex flex-col sm:flex-row gap-6">
-          <div className="w-16 h-16 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center text-2xl font-bold flex-shrink-0">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold flex-shrink-0 text-white"
+            style={{ background: '#D96868' }}>
             {student.fullName.charAt(0)}
           </div>
           <div className="flex-1 min-w-0">
@@ -152,7 +161,7 @@ export default function StudentProfile() {
                 <p className="text-sm text-gray-500 font-mono mt-0.5">{student.studentId}</p>
               </div>
               {lowAtt && (
-                <span className="flex items-center gap-1 badge bg-red-100 text-red-700">
+                <span className="flex items-center gap-1 badge bg-primary-100 text-primary-700">
                   <AlertTriangle size={12} /> Low Attendance
                 </span>
               )}
@@ -170,7 +179,7 @@ export default function StudentProfile() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card p-4">
           <p className="text-xs text-gray-500 mb-1">Attendance Rate</p>
-          <p className={`text-2xl font-bold ${lowAtt ? 'text-red-600' : 'text-green-600'}`}>{attPct}%</p>
+          <p className={`text-2xl font-bold ${lowAtt ? 'text-primary-600' : 'text-sage-600'}`}>{attPct}%</p>
           <AttendanceBar pct={attPct} />
         </div>
         <div className="card p-4">
@@ -180,7 +189,7 @@ export default function StudentProfile() {
         </div>
         <div className="card p-4">
           <p className="text-xs text-gray-500 mb-1">Overall Grade Avg</p>
-          <p className={`text-2xl font-bold ${(summary?.overall ?? 0) >= 75 ? 'text-blue-600' : 'text-red-500'}`}>
+          <p className={`text-2xl font-bold ${(summary?.overall ?? 0) >= 75 ? 'text-sage-600' : 'text-primary-600'}`}>
             {summary?.overall != null ? `${summary.overall}%` : '—'}
           </p>
           <p className="text-xs text-gray-400">{summary?.total ?? 0} grade entries</p>
@@ -201,7 +210,7 @@ export default function StudentProfile() {
               <RadarChart data={radarData}>
                 <PolarGrid stroke="#e5e7eb" />
                 <PolarAngleAxis dataKey="category" tick={{ fontSize: 12 }} />
-                <Radar name="Average %" dataKey="avg" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} />
+                <Radar name="Average %" dataKey="avg" stroke="#D96868" fill="#D96868" fillOpacity={0.15} />
                 <Tooltip formatter={(v: number) => [`${v.toFixed(1)}%`, 'Average']} />
               </RadarChart>
             </ResponsiveContainer>
@@ -229,8 +238,11 @@ export default function StudentProfile() {
           {tabs.map(t => (
             <button key={t.key} onClick={() => setActiveTab(t.key)}
               className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors ${
-                activeTab === t.key ? 'bg-white border-b-2 border-blue-600 text-blue-700' : 'text-gray-500 hover:text-gray-700'
-              }`}>
+                activeTab === t.key
+                  ? 'bg-white border-b-2 text-primary-700'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              style={activeTab === t.key ? { borderBottomColor: '#D96868' } : {}}>
               {t.icon}{t.label}
             </button>
           ))}
@@ -242,10 +254,10 @@ export default function StudentProfile() {
             <div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
                 {[
-                  { label: 'Present', val: presentCount, icon: <CheckCircle size={14} />, cls: 'text-green-700 bg-green-50 border-green-200' },
-                  { label: 'Absent', val: absentCount, icon: <XCircle size={14} />, cls: 'text-red-700 bg-red-50 border-red-200' },
-                  { label: 'Late', val: lateCount, icon: <Clock size={14} />, cls: 'text-yellow-700 bg-yellow-50 border-yellow-200' },
-                  { label: 'Excused', val: excusedCount, icon: <CalendarCheck size={14} />, cls: 'text-blue-700 bg-blue-50 border-blue-200' },
+                  { label: 'Present', val: presentCount, icon: <CheckCircle size={14} />, cls: 'text-sage-700 bg-sage-50 border-sage-200' },
+                  { label: 'Absent',  val: absentCount,  icon: <XCircle size={14} />,     cls: 'text-primary-700 bg-primary-50 border-primary-200' },
+                  { label: 'Late',    val: lateCount,    icon: <Clock size={14} />,        cls: 'text-amber-700 bg-amber-50 border-amber-200' },
+                  { label: 'Excused', val: excusedCount, icon: <CalendarCheck size={14} />, cls: 'text-sky-700 bg-sky-50 border-sky-200' },
                 ].map(({ label, val, icon, cls }) => (
                   <div key={label} className={`rounded-lg border p-3 flex items-center gap-2 ${cls}`}>
                     {icon}
@@ -345,11 +357,16 @@ export default function StudentProfile() {
                           <td className="table-td font-medium">{sc.activity?.title}</td>
                           <td className="table-td"><GradeBadge category={sc.activity?.type as GradeCategory} /></td>
                           <td className="table-td text-gray-500">
-                            {sc.activity?.dueDate ? format(new Date(sc.activity.dueDate), 'MMM d, yyyy')
-                              : sc.activity?.activityDate ? format(new Date(sc.activity.activityDate), 'MMM d, yyyy') : '—'}
+                            {sc.activity?.dueDate
+                              ? format(new Date(sc.activity.dueDate), 'MMM d, yyyy')
+                              : sc.activity?.activityDate
+                                ? format(new Date(sc.activity.activityDate), 'MMM d, yyyy')
+                                : '—'}
                           </td>
                           <td className="table-td">
-                            {sc.score != null ? `${sc.score}/${sc.activity?.maxScore}` : <span className="text-gray-400">Not scored</span>}
+                            {sc.score != null
+                              ? `${sc.score}/${sc.activity?.maxScore}`
+                              : <span className="text-gray-400">Not scored</span>}
                           </td>
                           <td className="table-td">
                             {sc.submitted
@@ -384,13 +401,15 @@ export default function StudentProfile() {
             <div>
               <label className="label">Student ID *</label>
               <input className={`input ${editErrors.studentId ? 'input-error' : ''}`}
-                value={editForm.studentId} onChange={e => setEditForm(f => ({ ...f, studentId: e.target.value }))} />
+                value={editForm.studentId}
+                onChange={e => setEditForm(f => ({ ...f, studentId: e.target.value }))} />
               {editErrors.studentId && <p className="text-xs text-red-500 mt-1">{editErrors.studentId}</p>}
             </div>
             <div>
               <label className="label">Class *</label>
               <select className={`input ${editErrors.classId ? 'input-error' : ''}`}
-                value={editForm.classId} onChange={e => setEditForm(f => ({ ...f, classId: e.target.value }))}>
+                value={editForm.classId}
+                onChange={e => setEditForm(f => ({ ...f, classId: e.target.value }))}>
                 <option value="">Select class…</option>
                 {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -400,18 +419,21 @@ export default function StudentProfile() {
           <div>
             <label className="label">Full Name *</label>
             <input className={`input ${editErrors.fullName ? 'input-error' : ''}`}
-              value={editForm.fullName} onChange={e => setEditForm(f => ({ ...f, fullName: e.target.value }))} />
+              value={editForm.fullName}
+              onChange={e => setEditForm(f => ({ ...f, fullName: toTitleCase(e.target.value) }))} />
             {editErrors.fullName && <p className="text-xs text-red-500 mt-1">{editErrors.fullName}</p>}
           </div>
           <div>
             <label className="label">Email</label>
             <input className="input" type="email" value={editForm.email}
-              onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} placeholder="student@school.edu" />
+              onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+              placeholder="student@school.edu" />
           </div>
           <div>
             <label className="label">Guardian Contact</label>
             <input className="input" value={editForm.guardianContact}
-              onChange={e => setEditForm(f => ({ ...f, guardianContact: e.target.value }))} placeholder="09xxxxxxxxx" />
+              onChange={e => setEditForm(f => ({ ...f, guardianContact: e.target.value }))}
+              placeholder="09xxxxxxxxx" />
           </div>
         </div>
         <div className="flex justify-end gap-3 mt-6">

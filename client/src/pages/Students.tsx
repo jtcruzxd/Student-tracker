@@ -14,6 +14,10 @@ type SortDir = 'asc' | 'desc';
 
 const INIT_FORM = { studentId: '', fullName: '', email: '', guardianContact: '', classId: '' };
 
+// Auto-capitalize each word in a name string
+const toTitleCase = (s: string) =>
+  s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+
 function StudentForm({ form, setForm, classes, errors }: {
   form: typeof INIT_FORM;
   setForm: (f: typeof INIT_FORM) => void;
@@ -43,7 +47,7 @@ function StudentForm({ form, setForm, classes, errors }: {
       <div>
         <label className="label">Full Name *</label>
         <input className={`input ${errors.fullName ? 'input-error' : ''}`} value={form.fullName}
-          onChange={e => set('fullName', e.target.value)} placeholder="e.g. Maria Clara Santos" />
+          onChange={e => set('fullName', toTitleCase(e.target.value))} placeholder="e.g. Maria Clara Santos" />
         {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
       </div>
       <div>
