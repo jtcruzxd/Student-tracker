@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Plus, Trash2, Pencil, Filter, BookOpen, Search, LayoutGrid, List, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Pencil, Filter, BookOpen, Search, LayoutGrid, List } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
-import { gradesApi, classesApi, studentsApi } from '../api';
-import type { GradeEntry, Class, Student, GradeCategory } from '../types';
+import { gradesApi, classesApi, studentsApi, activitiesApi } from '../api';
+import type { GradeEntry, Class, Student, GradeCategory, Activity } from '../types';
 import Modal from '../components/ui/Modal';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { PageLoader } from '../components/ui/Spinner';
@@ -19,7 +19,7 @@ const INIT_FORM = {
 
 function validate(form: typeof INIT_FORM) {
   const e: Record<string, string> = {};
-  if (!form.title.trim()) e.title = 'Title is required';
+  if (!form.title.trim()) e.title = 'Activity is required';
   if (!form.studentId) e.studentId = 'Student is required';
   if (!form.score || isNaN(Number(form.score))) e.score = 'Valid score required';
   if (!form.maxScore || isNaN(Number(form.maxScore)) || Number(form.maxScore) <= 0) e.maxScore = 'Valid max score required';
@@ -28,27 +28,24 @@ function validate(form: typeof INIT_FORM) {
   return e;
 }
 
-// Default subject list — shown in dropdown even before any grades exist
-const DEFAULT_SUBJECTS = [
-  'Mathematics', 'English', 'Science', 'Filipino',
-  'Araling Panlipunan', 'MAPEH', 'TLE/TVL', 'ESP/Values Education',
-  'Computer Science', 'Physics', 'Chemistry', 'Biology',
-  'History', 'Statistics', 'Calculus', 'Literature',
-];
-
-// Combo box: shows dropdown suggestions + allows free-text input
-function SubjectComboBox({ value, onChange, existingTitles, error }: {
+// Student autocomplete — filters as you type, only shows provided students
+function StudentAutocomplete({ value, onChange, students, error }: {
   value: string;
-  onChange: (v: string) => void;
-  existingTitles: string[];
+  onChange: (id: string) => void;
+  students: Student[];
   error?: string;
 }) {
+  const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState(value);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Keep internal query in sync when form resets
-  useEffect(() => { setQuery(value); }, [value]);
+  const selected = students.find(s => s.id === value);
+
+  // When value changes externally (form reset), clear query
+  useEffect(() => {
+    if (!value) setQuery('');
+    else if (selected) setQuery(selected.fullName);
+  }, [value, selected]);
 
   // Close on outside click
   useEffect(() => {
@@ -59,101 +56,132 @@ function SubjectComboBox({ value, onChange, existingTitles, error }: {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Merge default subjects + unique titles from existing grades, deduped
-  const allSubjects = Array.from(new Set([
-    ...DEFAULT_SUBJECTS,
-    ...existingTitles,
-  ])).sort();
-
-  // Filter by current query
-  const suggestions = allSubjects.filter(s =>
-    !query.trim() || s.toLowerCase().includes(query.toLowerCase())
+  const filtered = students.filter(s =>
+    !query.trim() || s.fullName.toLowerCase().includes(query.toLowerCase()) ||
+    s.studentId.toLowerCase().includes(query.toLowerCase())
   );
 
-  const select = (s: string) => {
-    setQuery(s);
-    onChange(s);
+  const select = (s: Student) => {
+    setQuery(s.fullName);
+    onChange(s.id);
     setOpen(false);
   };
 
   return (
     <div ref={ref} className="relative">
       <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         <input
-          className={`input pr-9 ${error ? 'input-error' : ''}`}
+          className={`input pl-9 ${error ? 'input-error' : ''}`}
           value={query}
-          placeholder="Select or type a subject…"
-          onChange={e => { setQuery(e.target.value); onChange(e.target.value); setOpen(true); }}
+          placeholder={students.length === 0 ? 'Select an activity first…' : 'Type to search student…'}
+          disabled={students.length === 0}
+          onChange={e => { setQuery(e.target.value); onChange(''); setOpen(true); }}
           onFocus={() => setOpen(true)}
           autoComplete="off"
         />
-        <button
-          type="button"
-          tabIndex={-1}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          onClick={() => setOpen(v => !v)}
-        >
-          <ChevronDown size={15} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-        </button>
       </div>
-
-      {open && suggestions.length > 0 && (
+      {open && students.length > 0 && (
         <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
-          {suggestions.map(s => (
+          {filtered.length === 0 ? (
+            <li className="px-3 py-2 text-sm text-gray-400 italic">No students match "{query}"</li>
+          ) : filtered.map(s => (
             <li
-              key={s}
-              className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors ${
-                s === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+              key={s.id}
+              className={`px-3 py-2.5 text-sm cursor-pointer transition-colors hover:bg-blue-50 ${
+                s.id === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
               }`}
               onMouseDown={e => { e.preventDefault(); select(s); }}
             >
-              {s}
+              <span className="font-medium">{s.fullName}</span>
+              <span className="text-xs text-gray-400 ml-2">{s.studentId}</span>
             </li>
           ))}
-          {/* If typed value isn't in the list, offer it as a custom option */}
-          {query.trim() && !allSubjects.some(s => s.toLowerCase() === query.toLowerCase()) && (
-            <li
-              className="px-3 py-2 text-sm cursor-pointer text-blue-600 hover:bg-blue-50 border-t border-gray-100 italic"
-              onMouseDown={e => { e.preventDefault(); select(query.trim()); }}
-            >
-              Use "{query.trim()}"
-            </li>
-          )}
         </ul>
       )}
     </div>
   );
 }
 
-function GradeForm({ form, setForm, students, existingTitles, errors }: {
+function GradeForm({ form, setForm, allStudents, activities, errors }: {
   form: typeof INIT_FORM;
   setForm: (f: typeof INIT_FORM) => void;
-  students: Student[];
-  existingTitles: string[];
+  allStudents: Student[];
+  activities: Activity[];
   errors: Record<string, string>;
 }) {
   const set = (k: keyof typeof INIT_FORM, v: string) => setForm({ ...form, [k]: v });
-  const pct = form.score && form.maxScore ? ((Number(form.score) / Number(form.maxScore)) * 100).toFixed(1) : null;
+  const pct = form.score && form.maxScore
+    ? ((Number(form.score) / Number(form.maxScore)) * 100).toFixed(1)
+    : null;
+
+  // When an activity is selected, auto-fill title, category, maxScore, activityId
+  // and filter students to only those in that activity's class
+  const selectedActivity = activities.find(a => a.id === form.activityId);
+  const classStudents = selectedActivity
+    ? allStudents.filter(s => s.classId === selectedActivity.classId)
+    : [];
+
+  const handleActivityChange = (actId: string) => {
+    const act = activities.find(a => a.id === actId);
+    if (!act) {
+      setForm({ ...form, activityId: '', title: '', maxScore: '', studentId: '' });
+      return;
+    }
+    const catMap: Record<string, GradeCategory> = {
+      QUIZ: 'QUIZ', ASSIGNMENT: 'ASSIGNMENT', RECITATION: 'RECITATION',
+      EXAM: 'EXAM', PROJECT: 'PROJECT',
+    };
+    setForm({
+      ...form,
+      activityId: act.id,
+      title: act.title,
+      category: catMap[act.type] ?? 'CUSTOM',
+      maxScore: String(act.maxScore),
+      studentId: '', // reset student when activity changes
+    });
+  };
+
   return (
     <div className="space-y-4">
+      {/* Step 1: Pick activity */}
       <div>
-        <label className="label">Student *</label>
-        <select className={`input ${errors.studentId ? 'input-error' : ''}`} value={form.studentId} onChange={e => set('studentId', e.target.value)}>
-          <option value="">Select student…</option>
-          {students.map(s => <option key={s.id} value={s.id}>{s.fullName} ({s.studentId}) – {s.class?.name}</option>)}
+        <label className="label">Activity / Subject *</label>
+        <select
+          className={`input ${errors.title ? 'input-error' : ''}`}
+          value={form.activityId}
+          onChange={e => handleActivityChange(e.target.value)}
+        >
+          <option value="">Select an activity…</option>
+          {activities.map(a => (
+            <option key={a.id} value={a.id}>
+              {a.title} — {a.class?.name} ({a.type})
+            </option>
+          ))}
         </select>
-        {errors.studentId && <p className="text-xs text-red-500 mt-1">{errors.studentId}</p>}
-      </div>
-      <div>
-        <label className="label">Subject / Activity Name *</label>
-        <SubjectComboBox
-          value={form.title}
-          onChange={v => set('title', v)}
-          existingTitles={existingTitles}
-          error={errors.title}
-        />
         {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
       </div>
+
+      {/* Step 2: Pick student — filtered by activity's class */}
+      <div>
+        <label className="label">
+          Student *
+          {selectedActivity && (
+            <span className="ml-2 text-xs font-normal text-gray-400">
+              {classStudents.length} student{classStudents.length !== 1 ? 's' : ''} in {selectedActivity.class?.name}
+            </span>
+          )}
+        </label>
+        <StudentAutocomplete
+          value={form.studentId}
+          onChange={id => set('studentId', id)}
+          students={classStudents}
+          error={errors.studentId}
+        />
+        {errors.studentId && <p className="text-xs text-red-500 mt-1">{errors.studentId}</p>}
+      </div>
+
+      {/* Auto-filled fields (still editable) */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="label">Category *</label>
@@ -168,6 +196,7 @@ function GradeForm({ form, setForm, students, existingTitles, errors }: {
           {errors.date && <p className="text-xs text-red-500 mt-1">{errors.date}</p>}
         </div>
       </div>
+
       <div className="grid grid-cols-3 gap-4">
         <div>
           <label className="label">Score *</label>
@@ -183,12 +212,14 @@ function GradeForm({ form, setForm, students, existingTitles, errors }: {
         </div>
         <div>
           <label className="label">Percentage</label>
-          <div className="input bg-gray-50 text-gray-500">{pct ? `${pct}%` : '—'}</div>
+          <div className="input bg-gray-50 text-gray-500 select-none">{pct ? `${pct}%` : '—'}</div>
         </div>
       </div>
+
       <div>
         <label className="label">Remarks</label>
-        <input className="input" value={form.remarks} onChange={e => set('remarks', e.target.value)} placeholder="Optional remarks" />
+        <input className="input" value={form.remarks} onChange={e => set('remarks', e.target.value)}
+          placeholder="Optional remarks" />
       </div>
     </div>
   );
@@ -198,6 +229,7 @@ export default function Grades() {
   const [grades, setGrades] = useState<GradeEntry[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterClass, setFilterClass] = useState('');
@@ -218,10 +250,12 @@ export default function Grades() {
       gradesApi.list({ classId: filterClass || undefined, category: filterCat || undefined }),
       classesApi.list(),
       studentsApi.list(),
-    ]).then(([g, c, s]) => {
+      activitiesApi.list(),
+    ]).then(([g, c, s, a]) => {
       setGrades(g);
       setClasses(c);
       setStudents(s);
+      setActivities(a);
     }).finally(() => setLoading(false));
   }, [filterClass, filterCat]);
 
@@ -232,7 +266,13 @@ export default function Grades() {
     g.student?.fullName.toLowerCase().includes(search.toLowerCase())
   );
 
-  const openAdd = () => { setForm({ ...INIT_FORM }); setFormErrors({}); setEditTarget(null); setModal('add'); };
+  const openAdd = () => {
+    setForm({ ...INIT_FORM });
+    setFormErrors({});
+    setEditTarget(null);
+    setModal('add');
+  };
+
   const openEdit = (g: GradeEntry) => {
     setForm({
       title: g.title, category: g.category, score: String(g.score), maxScore: String(g.maxScore),
@@ -272,9 +312,6 @@ export default function Grades() {
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Failed to delete'); }
     finally { setDeleting(false); }
   };
-
-  // Unique titles from existing grades (for autocomplete)
-  const existingTitles = Array.from(new Set(grades.map(g => g.title))).sort();
 
   // Summary cards by category
   const catSummary = CATEGORIES.map(cat => {
@@ -350,7 +387,7 @@ export default function Grades() {
                 <tr>
                   <th className="table-th">Date</th>
                   <th className="table-th">Student</th>
-                  <th className="table-th">Title</th>
+                  <th className="table-th">Activity</th>
                   <th className="table-th">Category</th>
                   <th className="table-th">Score</th>
                   <th className="table-th">Percentage</th>
@@ -422,7 +459,13 @@ export default function Grades() {
       )}
 
       <Modal open={modal !== null} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Grade' : 'Edit Grade'} size="md">
-        <GradeForm form={form} setForm={setForm} students={students} existingTitles={existingTitles} errors={formErrors} />
+        <GradeForm
+          form={form}
+          setForm={setForm}
+          allStudents={students}
+          activities={activities}
+          errors={formErrors}
+        />
         <div className="flex justify-end gap-3 mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)} disabled={saving}>Cancel</button>
           <button className="btn-primary" onClick={handleSave} disabled={saving}>
