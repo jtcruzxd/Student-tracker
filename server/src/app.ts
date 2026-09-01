@@ -18,16 +18,20 @@ dotenv.config();
 const app = express();
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-const allowedOrigins = [
-  'http://localhost:5173',
-  process.env.FRONTEND_URL,
-].filter(Boolean) as string[];
-
+// On Vercel, frontend and API share the same domain — no CORS needed.
+// In local dev we need to allow localhost:5173.
+// We also support FRONTEND_URL env var for custom domains.
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (curl, Postman, same-origin SSR)
+    // Same-origin requests (no origin header) — always allow
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    // localhost dev
+    if (origin.startsWith('http://localhost')) return callback(null, true);
+    // Any vercel.app deployment (preview + production)
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    // Custom domain via env var
+    const custom = process.env.FRONTEND_URL;
+    if (custom && origin === custom) return callback(null, true);
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
