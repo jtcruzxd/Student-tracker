@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Search, Filter, Trash2, Pencil, ChevronUp, ChevronDown, Users, Eye } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, Pencil, ChevronUp, ChevronDown, Users, Eye, ArrowDownAZ, ArrowUpAZ, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { studentsApi, classesApi } from '../api';
 import type { Student, Class } from '../types';
@@ -76,6 +76,7 @@ export default function Students() {
   const [searchParams] = useSearchParams();
   const [filterClass, setFilterClass] = useState(searchParams.get('classId') ?? '');
   const [sort, setSort] = useState<{ field: SortField; dir: SortDir }>({ field: 'fullName', dir: 'asc' });
+  const [showNoGrades, setShowNoGrades] = useState(false);
   const [modal, setModal] = useState<'add' | 'edit' | null>(null);
   const [editTarget, setEditTarget] = useState<Student | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
@@ -97,7 +98,9 @@ export default function Students() {
 
   useEffect(() => { load(); }, [load]);
 
-  const sorted = [...students].sort((a, b) => {
+  const sorted = [...students]
+    .filter(s => !showNoGrades || (s._count?.gradeEntries ?? 0) === 0)
+    .sort((a, b) => {
     let av = '', bv = '';
     if (sort.field === 'fullName') { av = a.fullName; bv = b.fullName; }
     if (sort.field === 'studentId') { av = a.studentId; bv = b.studentId; }
@@ -164,7 +167,10 @@ export default function Students() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1">
           <h1 className="text-xl font-bold text-gray-900">Students</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{students.length} student{students.length !== 1 ? 's' : ''} total</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {sorted.length} of {students.length} student{students.length !== 1 ? 's' : ''}
+            {showNoGrades && <span className="ml-2 text-amber-600 font-medium">· No grades filter active</span>}
+          </p>
         </div>
         <button className="btn-primary" onClick={openAdd}>
           <Plus size={16} /> Add Student
@@ -172,8 +178,8 @@ export default function Students() {
       </div>
 
       {/* Filters */}
-      <div className="card p-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="card p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
+        <div className="relative flex-1 min-w-48">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             className="input pl-9"
@@ -182,13 +188,48 @@ export default function Students() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Filter size={16} className="text-gray-400 flex-shrink-0" />
-          <select className="input w-48" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
+          <select className="input w-44" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
             <option value="">All Classes</option>
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
+
+        {/* A→Z quick sort button */}
+        <button
+          className={`btn-secondary btn-sm flex items-center gap-1.5 flex-shrink-0 ${sort.field === 'fullName' && sort.dir === 'asc' ? 'border-blue-300 text-blue-700 bg-blue-50' : sort.field === 'fullName' ? 'border-purple-300 text-purple-700 bg-purple-50' : ''}`}
+          onClick={() => toggleSort('fullName')}
+          title="Sort alphabetically by name"
+        >
+          {sort.field === 'fullName' && sort.dir === 'desc' ? <ArrowUpAZ size={15} /> : <ArrowDownAZ size={15} />}
+          {sort.field === 'fullName' ? (sort.dir === 'asc' ? 'A → Z' : 'Z → A') : 'A → Z'}
+        </button>
+
+        {/* No grades filter */}
+        <button
+          className={`btn-sm flex items-center gap-1.5 rounded-lg border font-medium transition-colors flex-shrink-0 ${
+            showNoGrades
+              ? 'bg-amber-500 text-white border-amber-500'
+              : 'bg-white text-amber-600 border-amber-300 hover:bg-amber-50'
+          }`}
+          onClick={() => setShowNoGrades(v => !v)}
+          title="Show students with no grades"
+        >
+          <AlertTriangle size={14} />
+          No Grades
+          {showNoGrades && (
+            <span className="ml-1 bg-white/30 text-white rounded px-1 text-xs">
+              {students.filter(s => (s._count?.gradeEntries ?? 0) === 0).length}
+            </span>
+          )}
+        </button>
+
+        {(search || filterClass || showNoGrades) && (
+          <button className="btn-ghost btn-sm flex-shrink-0" onClick={() => { setSearch(''); setFilterClass(''); setShowNoGrades(false); }}>
+            Clear all
+          </button>
+        )}
       </div>
 
       {/* Table */}

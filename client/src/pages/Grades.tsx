@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Plus, Trash2, Pencil, Filter, BookOpen, Search, LayoutGrid, List } from 'lucide-react';
+import { Plus, Trash2, Pencil, BookOpen, Search, LayoutGrid, List, AlertTriangle, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { gradesApi, classesApi, studentsApi, activitiesApi } from '../api';
@@ -234,6 +234,8 @@ export default function Grades() {
   const [search, setSearch] = useState('');
   const [filterClass, setFilterClass] = useState('');
   const [filterCat, setFilterCat] = useState('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc'); // A→Z by student name
+  const [showAtRisk, setShowAtRisk] = useState(false); // ≤65% grades
   const [view, setView] = useState<'table' | 'cards'>('table');
 
   const [modal, setModal] = useState<'add' | 'edit' | null>(null);
@@ -261,10 +263,17 @@ export default function Grades() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = grades.filter(g =>
-    !search || g.title.toLowerCase().includes(search.toLowerCase()) ||
-    g.student?.fullName.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = grades
+    .filter(g =>
+      (!search || g.title.toLowerCase().includes(search.toLowerCase()) ||
+        g.student?.fullName.toLowerCase().includes(search.toLowerCase())) &&
+      (!showAtRisk || g.percentage <= 65)
+    )
+    .sort((a, b) => {
+      const nameA = a.student?.fullName ?? '';
+      const nameB = b.student?.fullName ?? '';
+      return sortDir === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+    });
 
   const openAdd = () => {
     setForm({ ...INIT_FORM });
@@ -325,7 +334,10 @@ export default function Grades() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1">
           <h1 className="text-xl font-bold text-gray-900">Grades</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{filtered.length} entr{filtered.length !== 1 ? 'ies' : 'y'}</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {filtered.length} entr{filtered.length !== 1 ? 'ies' : 'y'}
+            {showAtRisk && <span className="ml-2 text-red-600 font-medium">· At Risk filter active</span>}
+          </p>
         </div>
         <div className="flex gap-2">
           <div className="flex rounded-lg border border-gray-200 overflow-hidden">
@@ -337,21 +349,53 @@ export default function Grades() {
       </div>
 
       {/* Filters */}
-      <div className="card p-4 flex flex-wrap gap-3">
+      <div className="card p-4 flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-48">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input className="input pl-9" placeholder="Search title or student…" value={search} onChange={e => setSearch(e.target.value)} />
+          <input className="input pl-9" placeholder="Search activity or student…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <select className="input w-48" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
+        <select className="input w-44" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
           <option value="">All Classes</option>
           {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <select className="input w-44" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
+        <select className="input w-40" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
           <option value="">All Categories</option>
           {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
-        {(filterClass || filterCat || search) && (
-          <button className="btn-ghost btn-sm" onClick={() => { setFilterClass(''); setFilterCat(''); setSearch(''); }}>Clear</button>
+
+        {/* A→Z / Z→A toggle */}
+        <button
+          className={`btn-secondary btn-sm flex items-center gap-1.5 ${sortDir === 'asc' ? 'border-blue-300 text-blue-700 bg-blue-50' : 'border-purple-300 text-purple-700 bg-purple-50'}`}
+          onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+          title="Sort by student name"
+        >
+          {sortDir === 'asc' ? <ArrowDownAZ size={15} /> : <ArrowUpAZ size={15} />}
+          {sortDir === 'asc' ? 'A → Z' : 'Z → A'}
+        </button>
+
+        {/* At-risk toggle */}
+        <button
+          className={`btn-sm flex items-center gap-1.5 rounded-lg border font-medium transition-colors ${
+            showAtRisk
+              ? 'bg-red-600 text-white border-red-600'
+              : 'bg-white text-red-600 border-red-300 hover:bg-red-50'
+          }`}
+          onClick={() => setShowAtRisk(v => !v)}
+          title="Show grades ≤65% (at risk)"
+        >
+          <AlertTriangle size={14} />
+          At Risk (≤65%)
+          {showAtRisk && (
+            <span className="ml-1 bg-white/30 text-white rounded px-1 text-xs">
+              {grades.filter(g => g.percentage <= 65).length}
+            </span>
+          )}
+        </button>
+
+        {(filterClass || filterCat || search || showAtRisk) && (
+          <button className="btn-ghost btn-sm" onClick={() => { setFilterClass(''); setFilterCat(''); setSearch(''); setShowAtRisk(false); }}>
+            Clear all
+          </button>
         )}
       </div>
 
@@ -398,7 +442,7 @@ export default function Grades() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map(g => (
-                  <tr key={g.id} className="hover:bg-gray-50">
+                  <tr key={g.id} className={`hover:bg-gray-50 ${g.percentage <= 65 ? 'bg-red-50/40' : ''}`}>
                     <td className="table-td text-gray-500">{format(new Date(g.date), 'MMM d, yyyy')}</td>
                     <td className="table-td">
                       <div className="font-medium">{g.student?.fullName}</div>
