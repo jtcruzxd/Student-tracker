@@ -92,16 +92,19 @@ export const dashboardApi = {
 
 export const exportApi = {
   students: (params?: { classId?: string; format?: string }) => {
+    const base = (import.meta.env.VITE_API_URL ?? '') + '/api';
     const query = new URLSearchParams(params as Record<string, string>).toString();
-    window.open(`/api/export/students${query ? '?' + query : ''}`, '_blank');
+    window.open(`${base}/export/students${query ? '?' + query : ''}`, '_blank');
   },
   attendance: (params?: { classId?: string; from?: string; to?: string; format?: string }) => {
+    const base = (import.meta.env.VITE_API_URL ?? '') + '/api';
     const query = new URLSearchParams(params as Record<string, string>).toString();
-    window.open(`/api/export/attendance${query ? '?' + query : ''}`, '_blank');
+    window.open(`${base}/export/attendance${query ? '?' + query : ''}`, '_blank');
   },
   grades: (params?: { studentId?: string; classId?: string; category?: string; format?: string }) => {
+    const base = (import.meta.env.VITE_API_URL ?? '') + '/api';
     const query = new URLSearchParams(params as Record<string, string>).toString();
-    window.open(`/api/export/grades${query ? '?' + query : ''}`, '_blank');
+    window.open(`${base}/export/grades${query ? '?' + query : ''}`, '_blank');
   },
 };
 

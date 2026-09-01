@@ -1,9 +1,13 @@
 import axios from 'axios';
 
+// In production (Vercel) the API lives at the same origin under /api.
+// In local dev the Vite proxy forwards /api → localhost:3001.
+const BASE_URL = (import.meta.env.VITE_API_URL ?? '') + '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
-  withCredentials: true, // send httpOnly cookie on same-origin requests
+  withCredentials: true,
 });
 
 // Attach JWT from localStorage on every request

@@ -21,6 +21,10 @@ export interface Student {
   createdAt: string;
   updatedAt: string;
   _count?: { attendanceRecords: number; gradeEntries: number };
+  // Optional relations — populated on GET /api/students/:id
+  attendanceRecords?: AttendanceRecord[];
+  gradeEntries?: GradeEntry[];
+  activityScores?: ActivityScore[];
 }
 
 export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
