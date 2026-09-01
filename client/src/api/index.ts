@@ -5,6 +5,17 @@ import type {
   StudentStats, GradeSummary, ApiResponse, ImportResult
 } from '../types';
 
+// ─── Auth ──────────────────────────────────────────────────────────────────
+
+export const authApi = {
+  login: (username: string, password: string) =>
+    api.post<ApiResponse<{ token: string; user: { id: string; username: string } }>>(
+      '/auth/login', { username, password }
+    ).then(r => r.data.data),
+  logout: () => api.post('/auth/logout'),
+  me: () => api.get<ApiResponse<{ user: { userId: string; username: string } }>>('/auth/me').then(r => r.data.data),
+};
+
 // ─── Classes ───────────────────────────────────────────────────────────────
 
 export const classesApi = {

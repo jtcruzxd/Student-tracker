@@ -3,8 +3,10 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarCheck, BookOpen,
   ClipboardList, ArrowDownUp, Settings, Menu, X,
-  GraduationCap, ChevronRight
+  GraduationCap, ChevronRight, LogOut, ShieldCheck
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -20,6 +22,12 @@ const navItems = [
 export default function Layout() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    toast.success('Logged out successfully');
+  };
 
   const getPageTitle = () => {
     const match = navItems.find(n =>
@@ -86,8 +94,26 @@ export default function Layout() {
         </nav>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-gray-100">
-          <p className="text-xs text-gray-400">School Year 2025–2026</p>
+        <div className="px-4 py-3 border-t border-gray-100 space-y-2">
+          {/* Logged-in user */}
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg bg-blue-50">
+            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+              <ShieldCheck size={14} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-blue-800 truncate">{user?.username}</p>
+              <p className="text-xs text-blue-500">Administrator</p>
+            </div>
+          </div>
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <LogOut size={15} />
+            <span>Sign Out</span>
+          </button>
+          <p className="text-xs text-gray-300 text-center pb-1">School Year 2025–2026</p>
         </div>
       </aside>
 
