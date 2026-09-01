@@ -14,22 +14,22 @@ import type { DashboardData } from '../types';
 import { PageLoader } from '../components/ui/Spinner';
 import { format } from 'date-fns';
 
-const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
+const COLORS = ['#D96868', '#e07e7e', '#eab308', '#91AE6E', '#689D4B'];
 
-function StatCard({ icon, label, value, sub, color = 'blue' }: {
+function StatCard({ icon, label, value, sub, color = 'rose' }: {
   icon: React.ReactNode; label: string; value: string | number;
   sub?: string; color?: string;
 }) {
   const bg: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    red: 'bg-red-50 text-red-600',
-    yellow: 'bg-yellow-50 text-yellow-600',
-    purple: 'bg-purple-50 text-purple-600',
+    rose:   'bg-primary-50 text-primary-600',
+    green:  'bg-sage-50 text-sage-600',
+    red:    'bg-primary-100 text-primary-700',
+    yellow: 'bg-amber-50 text-amber-600',
+    purple: 'bg-violet-50 text-violet-600',
   };
   return (
     <div className="card p-5 flex items-center gap-4">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${bg[color]}`}>
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${bg[color] ?? bg.rose}`}>
         {icon}
       </div>
       <div>
@@ -65,10 +65,10 @@ export default function Dashboard() {
   ].filter(d => d.value > 0);
 
   const attBarData = ta.total > 0 ? [
-    { name: 'Present', value: ta.present, fill: '#22c55e' },
-    { name: 'Absent', value: ta.absent, fill: '#ef4444' },
-    { name: 'Late', value: ta.late, fill: '#eab308' },
-    { name: 'Excused', value: ta.excused, fill: '#3b82f6' },
+    { name: 'Present', value: ta.present, fill: '#689D4B' },
+    { name: 'Absent',  value: ta.absent,  fill: '#D96868' },
+    { name: 'Late',    value: ta.late,    fill: '#eab308' },
+    { name: 'Excused', value: ta.excused, fill: '#91AE6E' },
   ] : [];
 
   return (
@@ -78,7 +78,7 @@ export default function Dashboard() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Users size={22} />} label="Total Students" value={data.totalStudents} sub={`${data.totalClasses} classes`} />
+        <StatCard icon={<Users size={22} />} label="Total Students" value={data.totalStudents} sub={`${data.totalClasses} classes`} color="rose" />
         <StatCard icon={<CalendarCheck size={22} />} label="Today Present" value={ta.present}
           sub={ta.total > 0 ? `${ta.presentPct}% attendance rate` : 'No sessions today'} color="green" />
         <StatCard icon={<XCircle size={22} />} label="Today Absent" value={ta.absent}
@@ -94,7 +94,7 @@ export default function Dashboard() {
         <div className="card p-5 lg:col-span-1">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Today's Attendance</h2>
-            <Link to="/attendance" className="text-xs text-blue-600 hover:underline flex items-center gap-0.5">
+            <Link to="/attendance" className="text-xs hover:underline flex items-center gap-0.5" style={{ color: '#D96868' }}>
               View <ChevronRight size={12} />
             </Link>
           </div>
@@ -107,10 +107,10 @@ export default function Dashboard() {
             <>
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {[
-                  { label: 'Present', val: ta.present, icon: <CheckCircle size={14} />, cls: 'text-green-600 bg-green-50' },
-                  { label: 'Absent', val: ta.absent, icon: <XCircle size={14} />, cls: 'text-red-600 bg-red-50' },
-                  { label: 'Late', val: ta.late, icon: <Clock size={14} />, cls: 'text-yellow-600 bg-yellow-50' },
-                  { label: 'Excused', val: ta.excused, icon: <CalendarCheck size={14} />, cls: 'text-blue-600 bg-blue-50' },
+                  { label: 'Present', val: ta.present, icon: <CheckCircle size={14} />, cls: 'text-sage-700 bg-sage-50' },
+                  { label: 'Absent',  val: ta.absent,  icon: <XCircle size={14} />,     cls: 'text-primary-700 bg-primary-50' },
+                  { label: 'Late',    val: ta.late,    icon: <Clock size={14} />,        cls: 'text-amber-700 bg-amber-50' },
+                  { label: 'Excused', val: ta.excused, icon: <CalendarCheck size={14} />, cls: 'text-sky-700 bg-sky-50' },
                 ].map(({ label, val, icon, cls }) => (
                   <div key={label} className={`rounded-lg p-3 flex items-center gap-2 ${cls}`}>
                     {icon}
@@ -142,7 +142,7 @@ export default function Dashboard() {
         <div className="card p-5 lg:col-span-1">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Grade Distribution</h2>
-            <Link to="/grades" className="text-xs text-blue-600 hover:underline flex items-center gap-0.5">
+            <Link to="/grades" className="text-xs hover:underline flex items-center gap-0.5" style={{ color: '#D96868' }}>
               View <ChevronRight size={12} />
             </Link>
           </div>
@@ -171,7 +171,7 @@ export default function Dashboard() {
               <AlertTriangle size={16} className="text-amber-500" />
               Low Attendance
             </h2>
-            <Link to="/students" className="text-xs text-blue-600 hover:underline flex items-center gap-0.5">
+            <Link to="/students" className="text-xs hover:underline flex items-center gap-0.5" style={{ color: '#D96868' }}>
               View all <ChevronRight size={12} />
             </Link>
           </div>
@@ -184,8 +184,8 @@ export default function Dashboard() {
             <ul className="space-y-2">
               {data.lowAttendanceStudents.map(s => (
                 <li key={s.id}>
-                  <Link to={`/students/${s.id}`} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-50 transition-colors group">
-                    <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-700 text-xs font-bold flex-shrink-0">
+                  <Link to={`/students/${s.id}`} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-primary-50 transition-colors group">
+                    <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold flex-shrink-0">
                       {s.fullName.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -193,7 +193,7 @@ export default function Dashboard() {
                       <p className="text-xs text-gray-400">{s.studentId}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <span className="text-sm font-bold text-red-600">{s.pct}%</span>
+                      <span className="text-sm font-bold text-primary-600">{s.pct}%</span>
                       <p className="text-xs text-gray-400">{s.total} days</p>
                     </div>
                   </Link>
@@ -210,7 +210,7 @@ export default function Dashboard() {
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Upcoming Activities</h2>
-            <Link to="/activities" className="text-xs text-blue-600 hover:underline flex items-center gap-0.5">
+            <Link to="/activities" className="text-xs hover:underline flex items-center gap-0.5" style={{ color: '#D96868' }}>
               View all <ChevronRight size={12} />
             </Link>
           </div>
@@ -223,8 +223,8 @@ export default function Dashboard() {
             <ul className="divide-y divide-gray-50">
               {data.upcomingActivities.map(a => (
                 <li key={a.id} className="py-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                    <ClipboardList size={14} className="text-blue-600" />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#f4f8f0' }}>
+                    <ClipboardList size={14} style={{ color: '#689D4B' }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{a.title}</p>
@@ -245,7 +245,7 @@ export default function Dashboard() {
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Recent Grades</h2>
-            <Link to="/grades" className="text-xs text-blue-600 hover:underline flex items-center gap-0.5">
+            <Link to="/grades" className="text-xs hover:underline flex items-center gap-0.5" style={{ color: '#D96868' }}>
               View all <ChevronRight size={12} />
             </Link>
           </div>
@@ -258,14 +258,14 @@ export default function Dashboard() {
             <ul className="divide-y divide-gray-50">
               {data.recentGrades.slice(0, 5).map(g => (
                 <li key={g.id} className="py-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
-                    <BookOpen size={14} className="text-purple-600" />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#fdf3f3' }}>
+                    <BookOpen size={14} style={{ color: '#D96868' }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{g.title}</p>
                     <p className="text-xs text-gray-400 truncate">{g.student?.fullName} · {g.category}</p>
                   </div>
-                  <span className={`text-sm font-bold flex-shrink-0 ${g.percentage >= 75 ? 'text-green-600' : 'text-red-500'}`}>
+                  <span className={`text-sm font-bold flex-shrink-0 ${g.percentage >= 75 ? 'text-sage-600' : 'text-primary-600'}`}>
                     {g.percentage.toFixed(1)}%
                   </span>
                 </li>
