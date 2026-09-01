@@ -315,7 +315,7 @@ export default function Activities() {
       )}
 
       {/* Add/Edit Modal */}
-      <Modal open={modal !== null} onClose={() => setModal(null)} title={modal === 'add' ? 'Create Activity' : 'Edit Activity'} size="md">
+      <Modal open={modal !== null} onClose={() => setModal(null)} onSubmit={handleSave} title={modal === 'add' ? 'Create Activity' : 'Edit Activity'} size="md">
         <ActivityForm form={form} setForm={setForm} classes={classes} errors={formErrors} />
         <div className="flex justify-end gap-3 mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)} disabled={saving}>Cancel</button>
@@ -326,7 +326,7 @@ export default function Activities() {
       </Modal>
 
       {/* Score Entry Modal */}
-      <Modal open={!!scoreActivity} onClose={() => setScoreActivity(null)} title={`Scores: ${scoreActivity?.title}`} size="lg">
+      <Modal open={!!scoreActivity} onClose={() => setScoreActivity(null)} onSubmit={handleSaveScores} title={`Scores: ${scoreActivity?.title}`} size="lg">
         {scoreActivity && (
           <>
             <p className="text-sm text-gray-500 mb-4">

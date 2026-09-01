@@ -4,17 +4,29 @@ import { X } from 'lucide-react';
 interface ModalProps {
   open: boolean;
   onClose: () => void;
+  onSubmit?: () => void;   // called when Enter is pressed inside the modal
   title: string;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export default function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
+export default function Modal({ open, onClose, onSubmit, title, children, size = 'md' }: ModalProps) {
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    if (open) document.addEventListener('keydown', handleKey);
+    if (!open) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      // Enter triggers submit — but not inside textarea or contenteditable
+      if (e.key === 'Enter' && onSubmit) {
+        const tag = (e.target as HTMLElement).tagName;
+        if (tag === 'TEXTAREA') return;          // allow newlines in textareas
+        if ((e.target as HTMLElement).isContentEditable) return;
+        e.preventDefault();
+        onSubmit();
+      }
+    };
+    document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [open, onClose]);
+  }, [open, onClose, onSubmit]);
 
   if (!open) return null;
 

@@ -307,7 +307,7 @@ export default function Students() {
       </div>
 
       {/* Add/Edit Modal */}
-      <Modal open={modal !== null} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Student' : 'Edit Student'} size="md">
+      <Modal open={modal !== null} onClose={() => setModal(null)} onSubmit={handleSave} title={modal === 'add' ? 'Add Student' : 'Edit Student'} size="md">
         <StudentForm form={form} setForm={setForm} classes={classes} errors={formErrors} />
         <div className="flex justify-end gap-3 mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)} disabled={saving}>Cancel</button>

@@ -542,7 +542,7 @@ export default function Grades() {
         </div>
       )}
 
-      <Modal open={modal !== null} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Grade' : 'Edit Grade'} size="md">
+      <Modal open={modal !== null} onClose={() => setModal(null)} onSubmit={handleSave} title={modal === 'add' ? 'Add Grade' : 'Edit Grade'} size="md">
         <GradeForm
           form={form}
           setForm={setForm}

@@ -395,7 +395,7 @@ export default function StudentProfile() {
       />
 
       {/* Edit Student Modal */}
-      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Student" size="md">
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} onSubmit={handleSaveEdit} title="Edit Student" size="md">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>

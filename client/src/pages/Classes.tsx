@@ -164,7 +164,7 @@ export default function Classes() {
         </div>
       )}
 
-      <Modal open={modal !== null} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Class' : 'Edit Class'} size="sm">
+      <Modal open={modal !== null} onClose={() => setModal(null)} onSubmit={handleSave} title={modal === 'add' ? 'Add Class' : 'Edit Class'} size="sm">
         <ClassForm form={form} setForm={setForm} errors={formErrors} />
         <div className="flex justify-end gap-3 mt-6">
           <button className="btn-secondary" onClick={() => setModal(null)} disabled={saving}>Cancel</button>

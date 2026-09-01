@@ -299,7 +299,7 @@ export default function Attendance() {
       </div>
 
       {/* Create Session Modal */}
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Record Attendance" size="lg">
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} onSubmit={handleCreate} title="Record Attendance" size="lg">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -369,7 +369,7 @@ export default function Attendance() {
       </Modal>
 
       {/* Edit Session Modal */}
-      <Modal open={!!editSession} onClose={() => setEditSession(null)} title="Edit Attendance" size="lg">
+      <Modal open={!!editSession} onClose={() => setEditSession(null)} onSubmit={handleSaveEdit} title="Edit Attendance" size="lg">
         {editSession && (
           <>
             <p className="text-sm text-gray-500 mb-4">
