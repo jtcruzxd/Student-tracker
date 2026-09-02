@@ -15,6 +15,8 @@ import Classes from './pages/Classes';
 import ImportExport from './pages/ImportExport';
 import Settings from './pages/Settings';
 
+import Materials from './pages/Materials';
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -48,6 +50,7 @@ export default function App() {
               <Route path="attendance" element={<Attendance />} />
               <Route path="grades" element={<Grades />} />
               <Route path="activities" element={<Activities />} />
+              <Route path="materials" element={<Materials />} />
               <Route path="classes" element={<Classes />} />
               <Route path="import-export" element={<ImportExport />} />
               <Route path="settings" element={<Settings />} />

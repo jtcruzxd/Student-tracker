@@ -16,7 +16,7 @@ declare global {
 }
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
-  // Accept token from Authorization header OR httpOnly cookie
+  // Accept token from Authorization header, httpOnly cookie, OR query param (for iframe/img src)
   let token: string | undefined;
 
   const authHeader = req.headers['authorization'];
@@ -24,6 +24,8 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
     token = authHeader.slice(7);
   } else if (req.cookies?.token) {
     token = req.cookies.token;
+  } else if (typeof req.query?.token === 'string') {
+    token = req.query.token;
   }
 
   if (!token) {

@@ -2,7 +2,7 @@ import api from './client';
 import type {
   Class, Student, AttendanceSession, AttendanceRecord,
   GradeEntry, Activity, ActivityScore, DashboardData,
-  StudentStats, GradeSummary, ApiResponse, ImportResult
+  StudentStats, GradeSummary, ApiResponse, ImportResult, Material
 } from '../types';
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
@@ -154,5 +154,51 @@ export const importApi = {
     return api.post<ApiResponse<ImportResult>>('/import/grades', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then(r => r.data.data);
+  },
+};
+
+// ─── Materials ─────────────────────────────────────────────────────────────
+
+export const materialsApi = {
+  list: (params?: { classId?: string }) =>
+    api.get<ApiResponse<Material[]>>('/materials', { params }).then(r => r.data.data),
+
+  upload: (file: File, title: string, classId: string, description?: string) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('title', title);
+    fd.append('classId', classId);
+    if (description) fd.append('description', description);
+    return api.post<ApiResponse<Material>>('/materials', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data.data);
+  },
+
+  update: (id: string, data: { title?: string; description?: string }) =>
+    api.patch<ApiResponse<Material>>(`/materials/${id}`, data).then(r => r.data.data),
+
+  delete: (id: string) => api.delete(`/materials/${id}`).then(r => r.data),
+
+  // Returns a URL to view/download the file (with auth token as query param)
+  fileUrl: (id: string) => {
+    const base = (import.meta.env.VITE_API_URL ?? '') + '/api';
+    const token = localStorage.getItem('token') ?? '';
+    return `${base}/materials/${id}/file?token=${token}`;
+  },
+
+  // Download the file as a blob with auth header
+  download: async (id: string, fileName: string) => {
+    const token = localStorage.getItem('token');
+    const base = (import.meta.env.VITE_API_URL ?? '') + '/api';
+    const res = await fetch(`${base}/materials/${id}/file`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Failed to download file');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fileName;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   },
 };

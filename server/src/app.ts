@@ -12,6 +12,7 @@ import gradesRouter from './routes/grades';
 import activitiesRouter from './routes/activities';
 import dashboardRouter from './routes/dashboard';
 import importExportRouter from './routes/importExport';
+import materialsRouter from './routes/materials';
 
 dotenv.config();
 
@@ -38,8 +39,8 @@ app.use(cors({
 }));
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '30mb' }));
+app.use(express.urlencoded({ extended: true, limit: '30mb' }));
 app.use(cookieParser());
 
 // ─── Public routes ─────────────────────────────────────────────────────────────
@@ -58,6 +59,7 @@ app.use('/api/grades', authenticate, gradesRouter);
 app.use('/api/activities', authenticate, activitiesRouter);
 app.use('/api/export', authenticate, importExportRouter);
 app.use('/api/import', authenticate, importExportRouter);
+app.use('/api/materials', authenticate, materialsRouter);
 
 // ─── Error handlers ────────────────────────────────────────────────────────────
 app.use(notFound);

@@ -21,7 +21,6 @@ export interface Student {
   createdAt: string;
   updatedAt: string;
   _count?: { attendanceRecords: number; gradeEntries: number };
-  // Optional relations — populated on GET /api/students/:id
   attendanceRecords?: AttendanceRecord[];
   gradeEntries?: GradeEntry[];
   activityScores?: ActivityScore[];
@@ -154,6 +153,19 @@ export interface GradeSummary {
   summary: Record<string, { count: number; avg: number; entries: GradeEntry[] }>;
   overall: number | null;
   total: number;
+}
+
+export interface Material {
+  id: string;
+  title: string;
+  description?: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  classId: string;
+  class?: Class;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ApiResponse<T> {

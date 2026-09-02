@@ -4,20 +4,21 @@ import {
   LayoutDashboard, Users, CalendarCheck, BookOpen,
   ClipboardList, ArrowDownUp, Settings, Menu, X,
   GraduationCap, ChevronRight, LogOut, ShieldCheck,
-  Camera, Pencil
+  Camera, Pencil, BookMarked
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const navItems = [
-  { to: '/',              label: 'Dashboard',     icon: LayoutDashboard, exact: true },
-  { to: '/students',      label: 'Students',       icon: Users },
-  { to: '/attendance',    label: 'Attendance',     icon: CalendarCheck },
-  { to: '/grades',        label: 'Grades',         icon: BookOpen },
-  { to: '/activities',    label: 'Activities',     icon: ClipboardList },
-  { to: '/classes',       label: 'Classes',        icon: GraduationCap },
-  { to: '/import-export', label: 'Import / Export', icon: ArrowDownUp },
-  { to: '/settings',      label: 'Settings',       icon: Settings },
+  { to: '/',              label: 'Dashboard',        icon: LayoutDashboard, exact: true },
+  { to: '/students',      label: 'Students',          icon: Users },
+  { to: '/attendance',    label: 'Attendance',        icon: CalendarCheck },
+  { to: '/grades',        label: 'Grades',            icon: BookOpen },
+  { to: '/activities',    label: 'Activities',        icon: ClipboardList },
+  { to: '/materials',     label: 'Materials',         icon: BookMarked },
+  { to: '/classes',       label: 'Classes',           icon: GraduationCap },
+  { to: '/import-export', label: 'Import / Export',   icon: ArrowDownUp },
+  { to: '/settings',      label: 'Settings',          icon: Settings },
 ];
 
 const LOGO_KEY   = 'st_logo_url';
