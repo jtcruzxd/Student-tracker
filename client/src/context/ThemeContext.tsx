@@ -166,22 +166,12 @@ function buildDarkCSS(accent: string): string {
   `;
 }
 
-function buildLightCSS(bg: string, bgImage: string | null): string {
-  if (bgImage) {
-    return `
-      body, html {
-        background-image: url("${bgImage}") !important;
-        background-size: cover !important;
-        background-attachment: fixed !important;
-        background-position: center !important;
-        background-repeat: no-repeat !important;
-      }
-    `;
-  }
-  return `body, html { background-color: ${bg} !important; }`;
+function buildLightCSS(): string {
+  // Background is handled via inline styles in Layout.tsx — nothing to inject
+  return '';
 }
 
-function applyCSS(dark: boolean, scheme: typeof COLOR_SCHEMES[number], bgImage: string | null) {
+function applyCSS(dark: boolean, scheme: typeof COLOR_SCHEMES[number]) {
   let el = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
   if (!el) {
     el = document.createElement('style');
@@ -190,7 +180,7 @@ function applyCSS(dark: boolean, scheme: typeof COLOR_SCHEMES[number], bgImage: 
   }
   el.textContent = dark
     ? buildDarkCSS(scheme.swatches[0])
-    : buildLightCSS(scheme.bg, bgImage);
+    : buildLightCSS();
 }
 
 // ─── Provider ───────────────────────────────────────────────────────────────
@@ -209,7 +199,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     loadFont(fontId);
     document.body.style.fontFamily = FONTS.find(f => f.id === fontId)?.css ?? FONTS[0].css;
-    applyCSS(dark, scheme, dark ? null : bgImage);
+    applyCSS(dark, scheme);
   }, [dark, schemeId, bgImage, fontId]);
 
   const setDark     = (v: boolean)        => { setDarkState(v);       localStorage.setItem(KEYS.dark,   String(v)); };

@@ -7,7 +7,7 @@ import {
   Camera, Pencil, BookMarked
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, COLOR_SCHEMES } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 const navItems = [
@@ -30,7 +30,9 @@ export default function Layout() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { accentColor } = useTheme();
+  const { accentColor, bgImage, schemeId } = useTheme();
+  // Resolve the current background colour from the scheme
+  const scheme = COLOR_SCHEMES.find(s => s.id === schemeId) ?? COLOR_SCHEMES[0];
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Persisted branding
@@ -78,8 +80,19 @@ export default function Layout() {
     return match?.label ?? label;
   };
 
+  // Build the background style — image takes priority over scheme colour
+  const bgStyle: React.CSSProperties = bgImage
+    ? {
+        backgroundImage: `url("${bgImage}")`,
+        backgroundSize: 'cover',
+        backgroundAttachment: 'fixed',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }
+    : { backgroundColor: scheme.bg };
+
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#F2F2F2' }}>
+    <div className="flex h-screen overflow-hidden" style={bgStyle}>
       {/* Mobile overlay */}
       {open && (
         <div className="fixed inset-0 bg-black/40 z-20 lg:hidden" onClick={() => setOpen(false)} />
@@ -223,7 +236,7 @@ export default function Layout() {
       </aside>
 
       {/* ── Main content ──────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ background: 'transparent' }}>
         {/* Topbar */}
         <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-4 flex-shrink-0 shadow-sm">
           <button
@@ -236,7 +249,7 @@ export default function Layout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6" style={{ background: 'transparent' }}>
           <Outlet />
         </main>
       </div>
