@@ -90,21 +90,53 @@ export const dashboardApi = {
 
 // ─── Import / Export ───────────────────────────────────────────────────────
 
+// ─── Import / Export ───────────────────────────────────────────────────────
+
+// Helper: fetch with auth token and trigger a file download
+async function downloadFile(url: string, defaultFilename: string) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `Export failed (${res.status})`);
+  }
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  // Try to use filename from Content-Disposition header
+  const disp = res.headers.get('Content-Disposition') ?? '';
+  const match = disp.match(/filename="?([^";\n]+)"?/);
+  a.href = objectUrl;
+  a.download = match?.[1] ?? defaultFilename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+}
+
 export const exportApi = {
   students: (params?: { classId?: string; format?: string }) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params ?? {}).filter(([, v]) => v)) as Record<string, string>
+    ).toString();
     const base = (import.meta.env.VITE_API_URL ?? '') + '/api';
-    const query = new URLSearchParams(params as Record<string, string>).toString();
-    window.open(`${base}/export/students${query ? '?' + query : ''}`, '_blank');
+    return downloadFile(`${base}/export/students${query ? '?' + query : ''}`, `students.${params?.format ?? 'csv'}`);
   },
   attendance: (params?: { classId?: string; from?: string; to?: string; format?: string }) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params ?? {}).filter(([, v]) => v)) as Record<string, string>
+    ).toString();
     const base = (import.meta.env.VITE_API_URL ?? '') + '/api';
-    const query = new URLSearchParams(params as Record<string, string>).toString();
-    window.open(`${base}/export/attendance${query ? '?' + query : ''}`, '_blank');
+    return downloadFile(`${base}/export/attendance${query ? '?' + query : ''}`, `attendance.${params?.format ?? 'csv'}`);
   },
   grades: (params?: { studentId?: string; classId?: string; category?: string; format?: string }) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params ?? {}).filter(([, v]) => v)) as Record<string, string>
+    ).toString();
     const base = (import.meta.env.VITE_API_URL ?? '') + '/api';
-    const query = new URLSearchParams(params as Record<string, string>).toString();
-    window.open(`${base}/export/grades${query ? '?' + query : ''}`, '_blank');
+    return downloadFile(`${base}/export/grades${query ? '?' + query : ''}`, `grades.${params?.format ?? 'csv'}`);
   },
 };
 

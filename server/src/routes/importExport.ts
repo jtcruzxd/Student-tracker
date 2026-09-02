@@ -28,7 +28,10 @@ router.get('/students', async (req: Request, res: Response, next: NextFunction) 
       'Guardian Contact': s.guardianContact || '',
     }));
 
-    sendFile(res, rows, 'students', format as string);
+    sendFile(res, rows, 'students', format as string,
+      `Student List — ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+      [14, 28, 28, 24, 16, 20],
+    );
   } catch (e) { next(e); }
 });
 
@@ -56,7 +59,10 @@ router.get('/attendance', async (req: Request, res: Response, next: NextFunction
       'Notes': r.notes || '',
     }));
 
-    sendFile(res, rows, 'attendance', format as string);
+    sendFile(res, rows, 'attendance', format as string,
+      `Attendance Records — ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+      [14, 14, 28, 24, 12, 30],
+    );
   } catch (e) { next(e); }
 });
 
@@ -79,15 +85,18 @@ router.get('/grades', async (req: Request, res: Response, next: NextFunction) =>
       'Student ID': g.student.studentId,
       'Full Name': g.student.fullName,
       'Class': g.student.class.name,
-      'Title': g.title,
+      'Activity': g.title,
       'Category': g.category,
       'Score': g.score,
       'Max Score': g.maxScore,
-      'Percentage': g.percentage,
+      'Percentage (%)': g.percentage,
       'Remarks': g.remarks || '',
     }));
 
-    sendFile(res, rows, 'grades', format as string);
+    sendFile(res, rows, 'grades', format as string,
+      `Grade Records — ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+      [14, 14, 28, 24, 28, 14, 10, 12, 16, 24],
+    );
   } catch (e) { next(e); }
 });
 
@@ -205,19 +214,153 @@ function parseFile(file: Express.Multer.File): unknown[] {
   }
 }
 
-function sendFile(res: Response, rows: object[], filename: string, format: string): void {
-  if (format === 'xlsx') {
-    const ws = XLSX.utils.json_to_sheet(rows);
+// ─── Palette ────────────────────────────────────────────────────────────────
+// Header: dark charcoal bg, white text
+// Sub-header / title row: rose accent
+// Even rows: very light rose tint
+// Odd rows: white
+// Borders: light gray
+
+const C = {
+  headerBg:    'FF2D2D2D', // dark charcoal
+  headerFont:  'FFFFFFFF', // white
+  accentBg:    'FFD96868', // rose
+  accentFont:  'FFFFFFFF',
+  evenRowBg:   'FFFFF5F5', // light rose tint
+  oddRowBg:    'FFFFFFFF',
+  borderColor: 'FFD1D5DB',
+  titleBg:     'FF689D4B', // forest green for title band
+  titleFont:   'FFFFFFFF',
+};
+
+function makeBorder() {
+  const side = { style: 'thin' as const, color: { rgb: C.borderColor } };
+  return { top: side, bottom: side, left: side, right: side };
+}
+
+function styleWorksheet(
+  ws: XLSX.WorkSheet,
+  headers: string[],
+  rows: object[],
+  sheetTitle: string,
+  colWidths: number[],
+) {
+  const totalCols = headers.length;
+  const totalRows = rows.length;
+
+  // Set column widths
+  ws['!cols'] = colWidths.map(w => ({ wch: w }));
+
+  // Freeze top 2 rows (title + header)
+  ws['!freeze'] = { xSplit: 0, ySplit: 2 };
+
+  // Row 1: merged title banner
+  // We insert a title row above the data — shift everything down by 1
+  // Note: json_to_sheet already placed headers at row 1, data at row 2+
+  // We'll insert a title row at row 1 and push headers to row 2
+
+  // Re-encode: shift all existing cells down by 1
+  const ref = ws['!ref'];
+  if (ref) {
+    const range = XLSX.utils.decode_range(ref);
+    // Shift existing cells down by 1 row
+    for (let r = range.e.r; r >= range.s.r; r--) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const oldAddr = XLSX.utils.encode_cell({ r, c });
+        const newAddr = XLSX.utils.encode_cell({ r: r + 1, c });
+        if (ws[oldAddr]) { ws[newAddr] = ws[oldAddr]; delete ws[oldAddr]; }
+      }
+    }
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: range.e.r + 1, c: range.e.c } });
+  }
+
+  // Row 0: Title banner (merged across all columns)
+  const titleCell: XLSX.CellObject = {
+    t: 's', v: sheetTitle,
+    s: {
+      font: { bold: true, sz: 14, color: { rgb: C.titleFont }, name: 'Calibri' },
+      fill: { fgColor: { rgb: C.titleBg }, patternType: 'solid' },
+      alignment: { horizontal: 'center', vertical: 'center' },
+      border: makeBorder(),
+    },
+  };
+  ws['A1'] = titleCell;
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } }];
+  ws['!rows'] = [{ hpt: 28 }, { hpt: 22 }]; // title row height, header row height
+
+  // Row 1 (now header row after shift): style header cells
+  for (let c = 0; c < totalCols; c++) {
+    const addr = XLSX.utils.encode_cell({ r: 1, c });
+    if (ws[addr]) {
+      ws[addr].s = {
+        font: { bold: true, sz: 10, color: { rgb: C.headerFont }, name: 'Calibri' },
+        fill: { fgColor: { rgb: C.headerBg }, patternType: 'solid' },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+        border: makeBorder(),
+      };
+    }
+  }
+
+  // Data rows (row 2+): alternating background + borders
+  for (let r = 2; r <= totalRows + 1; r++) {
+    const isEven = (r % 2 === 0);
+    const bg = isEven ? C.evenRowBg : C.oddRowBg;
+    for (let c = 0; c < totalCols; c++) {
+      const addr = XLSX.utils.encode_cell({ r, c });
+      const cell = ws[addr];
+      if (cell) {
+        cell.s = {
+          font: { sz: 10, name: 'Calibri' },
+          fill: { fgColor: { rgb: bg }, patternType: 'solid' },
+          alignment: { vertical: 'center', wrapText: false },
+          border: makeBorder(),
+        };
+        // Center numeric/percentage columns
+        if (typeof cell.v === 'number') {
+          cell.s.alignment = { ...cell.s.alignment, horizontal: 'center' };
+        }
+      }
+    }
+  }
+
+  return ws;
+}
+
+function buildStyledXlsx(
+  rows: object[],
+  filename: string,
+  sheetTitle: string,
+  colWidths: number[],
+): Buffer {
+  if (rows.length === 0) {
+    // Empty sheet with just a title
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Data');
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const ws: XLSX.WorkSheet = { A1: { t: 's', v: 'No data found' }, '!ref': 'A1:A1' };
+    XLSX.utils.book_append_sheet(wb, ws, filename);
+    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx', cellStyles: true });
+  }
+
+  const headers = Object.keys(rows[0]);
+  const ws = XLSX.utils.json_to_sheet(rows);
+  styleWorksheet(ws, headers, rows, sheetTitle, colWidths);
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, filename.charAt(0).toUpperCase() + filename.slice(1));
+
+  return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx', cellStyles: true });
+}
+
+function sendFile(res: Response, rows: object[], filename: string, format: string, sheetTitle: string, colWidths: number[]): void {
+  const stamp = new Date().toISOString().split('T')[0];
+  if (format === 'xlsx') {
+    const buf = buildStyledXlsx(rows, filename, sheetTitle, colWidths);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}.xlsx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}-${stamp}.xlsx"`);
     res.send(buf);
   } else {
     const csv = Papa.unparse(rows);
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}-${stamp}.csv"`);
     res.send(csv);
   }
 }
