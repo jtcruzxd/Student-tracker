@@ -25,6 +25,29 @@
 
   .card        { @apply bg-white rounded-xl shadow-sm border border-gray-200/70; }
 
+  /* ── Frosted glass cards when background image is active ── */
+  .has-bg-image .card {
+    background: rgba(255, 255, 255, 0.72) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.55) !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12) !important;
+  }
+  /* Keep table stripe rows readable */
+  .has-bg-image .bg-gray-50,
+  .has-bg-image thead,
+  .has-bg-image thead tr {
+    background: rgba(248, 250, 252, 0.80) !important;
+  }
+  /* Inputs slightly opaque */
+  .has-bg-image .input {
+    background: rgba(255, 255, 255, 0.88) !important;
+  }
+  /* Hover rows */
+  .has-bg-image .hover\:bg-gray-50:hover {
+    background: rgba(248, 250, 252, 0.90) !important;
+  }
+
   .badge        { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
   .badge-green  { @apply badge bg-sage-100 text-sage-700; }
   .badge-red    { @apply badge bg-primary-100 text-primary-700; }

@@ -80,19 +80,23 @@ export default function Layout() {
     return match?.label ?? label;
   };
 
-  // Build the background style — image takes priority over scheme colour
-  const bgStyle: React.CSSProperties = bgImage
+  // Background image applies ONLY to the main content area (red box)
+  // Sidebar and topbar stay solid
+  const mainBgStyle: React.CSSProperties = bgImage
     ? {
         backgroundImage: `url("${bgImage}")`,
-        backgroundSize: 'cover',
-        backgroundAttachment: 'fixed',
-        backgroundPosition: 'center',
+        backgroundSize: '100% 100%',   // stretch to fill exactly — no crop
+        backgroundPosition: 'top left',
         backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'scroll', // static — stays fixed when scrolling
       }
     : { backgroundColor: scheme.bg };
 
+  // Root div uses scheme colour only — no background image bleed
+  const rootBgStyle: React.CSSProperties = { backgroundColor: scheme.bg };
+
   return (
-    <div className="flex h-screen overflow-hidden" style={bgStyle}>
+    <div className="flex h-screen overflow-hidden" style={rootBgStyle}>
       {/* Mobile overlay */}
       {open && (
         <div className="fixed inset-0 bg-black/40 z-20 lg:hidden" onClick={() => setOpen(false)} />
@@ -237,8 +241,9 @@ export default function Layout() {
 
       {/* ── Main content ──────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ background: 'transparent' }}>
-        {/* Topbar */}
-        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-4 flex-shrink-0 shadow-sm">
+        {/* Topbar — always solid white */}
+        <header className="border-b border-gray-200 px-4 py-3 flex items-center gap-4 flex-shrink-0 shadow-sm"
+          style={{ background: 'white' }}>
           <button
             className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100"
             onClick={() => setOpen(true)}
@@ -248,8 +253,11 @@ export default function Layout() {
           <h1 className="text-base font-semibold text-gray-900">{getPageTitle()}</h1>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6" style={{ background: 'transparent' }}>
+        {/* Page content — background image is contained HERE only */}
+        <main
+          className={`flex-1 overflow-y-auto p-4 md:p-6${bgImage ? ' has-bg-image' : ''}`}
+          style={mainBgStyle}
+        >
           <Outlet />
         </main>
       </div>

@@ -169,7 +169,8 @@ export default function Settings() {
               {bgImage ? (
                 /* Preview of current image */
                 <div className="relative rounded-xl overflow-hidden" style={{ height: '120px' }}>
-                  <img src={bgImage} alt="background" className="w-full h-full object-cover" />
+                  <img src={bgImage} alt="background" className="w-full h-full"
+                    style={{ objectFit: 'fill' }} />
                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center gap-2 opacity-0 hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => imgRef.current?.click()}
