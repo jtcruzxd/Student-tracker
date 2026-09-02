@@ -7,6 +7,7 @@ import {
   Camera, Pencil, BookMarked
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 const navItems = [
@@ -29,6 +30,7 @@ export default function Layout() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { accentColor } = useTheme();
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Persisted branding
@@ -119,7 +121,7 @@ export default function Layout() {
               <div className="relative flex-shrink-0 group">
                 <div
                   className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center cursor-pointer"
-                  style={{ background: '#D96868' }}
+                  style={{ background: accentColor }}
                   onClick={() => fileRef.current?.click()}
                   title="Click to upload logo"
                 >
@@ -178,7 +180,7 @@ export default function Layout() {
                         : 'text-white/60 hover:text-white hover:bg-white/8'
                     }`
                   }
-                  style={({ isActive }) => isActive ? { background: '#D96868' } : {}}
+                  style={({ isActive }) => isActive ? { background: accentColor } : {}}
                 >
                   {({ isActive }) => (
                     <>

@@ -1,18 +1,12 @@
-import { Settings as SettingsIcon, Database, Info, Server, Moon, Sun, Palette, Type, RotateCcw } from 'lucide-react';
-import { useTheme, FONTS } from '../context/ThemeContext';
+import { useRef } from 'react';
+import {
+  Settings as SettingsIcon, Database, Info, Server,
+  Moon, Sun, Palette, Type, RotateCcw, Image, X,
+} from 'lucide-react';
+import { useTheme, FONTS, COLOR_SCHEMES } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
-const PRESET_BACKGROUNDS = [
-  { label: 'Pale Gray',  value: '#F2F2F2' },
-  { label: 'White',      value: '#FFFFFF' },
-  { label: 'Warm Cream', value: '#FDF8F0' },
-  { label: 'Light Rose', value: '#FDF3F3' },
-  { label: 'Sage Tint',  value: '#F4F8F0' },
-  { label: 'Sky Blue',   value: '#F0F4FF' },
-  { label: 'Lavender',   value: '#F5F0FF' },
-  { label: 'Warm Tan',   value: '#F9F5EE' },
-];
-
+// ─── Toggle ────────────────────────────────────────────────────────────────
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
@@ -21,44 +15,70 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       style={{
-        position: 'relative',
-        display: 'inline-flex',
-        width: '44px',
-        height: '24px',
-        borderRadius: '9999px',
+        position: 'relative', display: 'inline-flex',
+        width: '44px', height: '24px', borderRadius: '9999px',
         backgroundColor: checked ? '#D96868' : '#d1d5db',
         transition: 'background-color 0.2s',
-        border: 'none',
-        cursor: 'pointer',
-        flexShrink: 0,
-        outline: 'none',
+        border: 'none', cursor: 'pointer', flexShrink: 0, outline: 'none',
       }}
     >
       <span style={{
-        position: 'absolute',
-        top: '3px',
+        position: 'absolute', top: '3px',
         left: checked ? '23px' : '3px',
-        width: '18px',
-        height: '18px',
-        borderRadius: '9999px',
-        backgroundColor: '#fff',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+        width: '18px', height: '18px', borderRadius: '9999px',
+        backgroundColor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
         transition: 'left 0.2s',
       }} />
     </button>
   );
 }
 
-export default function Settings() {
-  const { dark, bgColor, fontId, setDark, setBgColor, setFontId } = useTheme();
+// ─── Section header ────────────────────────────────────────────────────────
+function SectionHead({ icon, title, sub }: { icon: React.ReactNode; title: string; sub: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-5">
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ background: '#fdf3f3' }}>
+        <span style={{ color: '#D96868' }}>{icon}</span>
+      </div>
+      <div>
+        <h2 className="font-semibold text-gray-900">{title}</h2>
+        <p className="text-xs text-gray-500">{sub}</p>
+      </div>
+    </div>
+  );
+}
 
-  const handleBgInput = (v: string) => {
-    setBgColor(v); // always update — show whatever is typed
+// ─── Main ─────────────────────────────────────────────────────────────────
+export default function Settings() {
+  const { dark, schemeId, bgImage, fontId, setDark, setSchemeId, setBgImage, setFontId } = useTheme();
+  const imgRef = useRef<HTMLInputElement>(null);
+
+  const handleBgImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error('Image must be under 3 MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      setBgImage(ev.target?.result as string);
+      toast.success('Background image applied');
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const removeBgImage = () => {
+    setBgImage(null);
+    toast.success('Background image removed');
   };
 
   const reset = () => {
     setDark(false);
-    setBgColor('#F2F2F2');
+    setSchemeId('default');
+    setBgImage(null);
     setFontId('inter');
     toast.success('Appearance reset to defaults');
   };
@@ -66,100 +86,132 @@ export default function Settings() {
   return (
     <div className="space-y-6 max-w-2xl">
 
-      {/* ── Appearance ───────────────────────────── */}
+      {/* ── Appearance ─────────────────────────────── */}
       <div className="card p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: '#fdf3f3' }}>
-            <Palette size={18} style={{ color: '#D96868' }} />
-          </div>
-          <div>
-            <h2 className="font-semibold text-gray-900">Appearance</h2>
-            <p className="text-xs text-gray-500">Customize how the app looks</p>
-          </div>
-        </div>
+        <SectionHead icon={<Palette size={18} />} title="Appearance" sub="Color scheme, background and fonts" />
 
-        <div className="space-y-4">
+        <div className="space-y-5">
 
-          {/* Dark Mode */}
+          {/* ── Dark Mode toggle ── */}
           <div className="flex items-center justify-between p-4 rounded-xl"
-            style={{ background: dark ? '#27272a' : '#f9fafb', border: '1px solid', borderColor: dark ? '#3f3f46' : '#e5e7eb' }}>
+            style={{
+              background: dark ? '#27272a' : '#f9fafb',
+              border: '1px solid', borderColor: dark ? '#3f3f46' : '#e5e7eb',
+            }}>
             <div className="flex items-center gap-3">
               {dark
                 ? <Moon size={18} style={{ color: '#a78bfa' }} />
                 : <Sun size={18} style={{ color: '#f59e0b' }} />}
               <div>
                 <p className="text-sm font-medium text-gray-800">Dark Mode</p>
-                <p className="text-xs text-gray-400">{dark ? 'Dark theme active' : 'Light theme active'}</p>
+                <p className="text-xs text-gray-400">{dark ? 'Dark theme is active' : 'Light theme is active'}</p>
               </div>
             </div>
             <Toggle checked={dark} onChange={setDark} />
           </div>
 
-          {/* Background Color — light mode only */}
+          {/* ── Color Scheme picker ── */}
+          <div className="p-4 rounded-xl space-y-3"
+            style={{ background: dark ? '#1e1e22' : '#f9fafb', border: '1px solid', borderColor: dark ? '#3f3f46' : '#e5e7eb' }}>
+            <div className="flex items-center gap-2">
+              <Palette size={14} className="text-gray-400" />
+              <p className="text-sm font-medium text-gray-800">Color Scheme</p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {COLOR_SCHEMES.map(s => {
+                const isActive = schemeId === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => { setSchemeId(s.id); if (s.id === 'dark') setDark(true); else setDark(false); }}
+                    style={{
+                      padding: '10px 8px',
+                      borderRadius: '12px',
+                      border: isActive ? `2px solid ${s.swatches[0]}` : '2px solid #e5e7eb',
+                      background: isActive ? s.bg : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      boxShadow: isActive ? `0 0 0 3px ${s.swatches[0]}33` : 'none',
+                      textAlign: 'left',
+                    }}
+                  >
+                    {/* Mini palette swatches */}
+                    <div style={{ display: 'flex', gap: '3px', marginBottom: '6px' }}>
+                      {s.swatches.map((c, i) => (
+                        <div key={i} style={{
+                          width: '14px', height: '14px', borderRadius: '50%',
+                          background: c, border: '1px solid rgba(0,0,0,0.08)',
+                          flexShrink: 0,
+                        }} />
+                      ))}
+                    </div>
+                    <p style={{ fontSize: '11px', fontWeight: isActive ? 700 : 500, color: isActive ? s.swatches[0] : '#374151', lineHeight: 1.2 }}>
+                      {s.label}
+                    </p>
+                    <p style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>{s.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Background Image (light mode only) ── */}
           {!dark && (
             <div className="p-4 rounded-xl space-y-3"
               style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}>
               <div className="flex items-center gap-2">
-                <Palette size={14} className="text-gray-400" />
-                <p className="text-sm font-medium text-gray-800">Background Color</p>
+                <Image size={14} className="text-gray-400" />
+                <p className="text-sm font-medium text-gray-800">Background Image</p>
+                <span className="text-xs text-gray-400 ml-auto">max 3 MB · JPG, PNG, WebP</span>
               </div>
 
-              {/* Preset swatches */}
-              <div className="flex flex-wrap gap-2">
-                {PRESET_BACKGROUNDS.map(p => (
-                  <button
-                    key={p.value}
-                    title={p.label}
-                    onClick={() => setBgColor(p.value)}
-                    style={{
-                      width: '32px', height: '32px',
-                      borderRadius: '8px',
-                      background: p.value,
-                      border: bgColor.toLowerCase() === p.value.toLowerCase()
-                        ? '2.5px solid #D96868'
-                        : '2px solid #d1d5db',
-                      transform: bgColor.toLowerCase() === p.value.toLowerCase() ? 'scale(1.15)' : 'scale(1)',
-                      transition: 'all 0.15s',
-                      cursor: 'pointer',
-                      boxShadow: bgColor.toLowerCase() === p.value.toLowerCase() ? '0 0 0 3px rgba(217,104,104,0.25)' : 'none',
-                    }}
-                  />
-                ))}
-              </div>
+              {bgImage ? (
+                /* Preview of current image */
+                <div className="relative rounded-xl overflow-hidden" style={{ height: '120px' }}>
+                  <img src={bgImage} alt="background" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center gap-2 opacity-0 hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => imgRef.current?.click()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-white/20 hover:bg-white/30 transition-colors"
+                    >
+                      <Image size={12} /> Change
+                    </button>
+                    <button
+                      onClick={removeBgImage}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-red-500/70 hover:bg-red-500/90 transition-colors"
+                    >
+                      <X size={12} /> Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Upload zone */
+                <div
+                  className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all hover:border-primary-300 hover:bg-gray-50"
+                  style={{ borderColor: '#d1d5db' }}
+                  onClick={() => imgRef.current?.click()}
+                >
+                  <Image size={22} className="text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 font-medium">Click to upload a background image</p>
+                  <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP — max 3 MB</p>
+                </div>
+              )}
 
-              {/* Color picker + hex input */}
-              <div className="flex items-center gap-3">
-                <label className="text-xs text-gray-500 whitespace-nowrap">Custom:</label>
-                <input
-                  type="color"
-                  value={bgColor.length === 7 && bgColor.startsWith('#') ? bgColor : '#F2F2F2'}
-                  onChange={e => setBgColor(e.target.value)}
-                  style={{ width: '36px', height: '36px', padding: '2px', borderRadius: '8px', border: '1px solid #d1d5db', cursor: 'pointer', background: 'white' }}
-                />
-                <input
-                  type="text"
-                  value={bgColor}
-                  onChange={e => handleBgInput(e.target.value)}
-                  className="input font-mono"
-                  style={{ width: '100px' }}
-                  maxLength={7}
-                  placeholder="#F2F2F2"
-                />
-              </div>
-
-              {/* Live preview */}
-              <div className="flex items-center gap-3 text-xs text-gray-400">
-                <div style={{
-                  width: '64px', height: '28px', borderRadius: '6px',
-                  background: bgColor, border: '1px solid #d1d5db',
-                }} />
-                <span>Live preview</span>
-              </div>
+              <input
+                ref={imgRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={handleBgImage}
+              />
+              <p className="text-xs text-gray-400">
+                The image fills the entire page background. Cards remain solid for readability.
+              </p>
             </div>
           )}
 
-          {/* Font */}
+          {/* ── Font Family ── */}
           <div className="p-4 rounded-xl space-y-3"
             style={{ background: dark ? '#1e1e22' : '#f9fafb', border: '1px solid', borderColor: dark ? '#3f3f46' : '#e5e7eb' }}>
             <div className="flex items-center gap-2">
@@ -192,6 +244,7 @@ export default function Settings() {
             </div>
           </div>
 
+          {/* Reset */}
           <div className="flex justify-end">
             <button onClick={reset}
               className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 py-1.5 px-3 rounded-lg hover:bg-gray-100 transition-colors">
@@ -203,15 +256,7 @@ export default function Settings() {
 
       {/* ── System Info ─────────────────────────── */}
       <div className="card p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
-            <SettingsIcon size={18} className="text-gray-600" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-gray-900">Application Settings</h2>
-            <p className="text-xs text-gray-500">System information</p>
-          </div>
-        </div>
+        <SectionHead icon={<SettingsIcon size={18} />} title="Application Settings" sub="System information" />
         <div className="space-y-3">
           {[
             { icon: <Server size={14} />,   label: 'Database', value: 'PostgreSQL (Neon)' },
@@ -234,7 +279,7 @@ export default function Settings() {
             { s: 'PRESENT', cls: 'badge-green', desc: 'Student attended the class.' },
             { s: 'ABSENT',  cls: 'badge-red',   desc: 'Student did not attend and was not excused.' },
             { s: 'LATE',    cls: 'badge-yellow', desc: 'Student arrived after the scheduled start time.' },
-            { s: 'EXCUSED', cls: 'badge-blue',  desc: 'Student was absent with an approved excuse.' },
+            { s: 'EXCUSED', cls: 'badge-blue',   desc: 'Student was absent with an approved excuse.' },
           ].map(({ s, cls, desc }) => (
             <div key={s} className="flex items-center gap-3">
               <span className={`${cls} w-20 justify-center flex`}>{s}</span>

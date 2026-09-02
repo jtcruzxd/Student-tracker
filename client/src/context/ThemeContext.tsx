@@ -12,18 +12,102 @@ export const FONTS = [
 
 export type FontId = typeof FONTS[number]['id'];
 
+// ─── Color Schemes ─────────────────────────────────────────────────────────
+export const COLOR_SCHEMES = [
+  {
+    id: 'default',
+    label: 'Rose & Sage',
+    description: 'Original palette',
+    bg: '#F2F2F2',
+    swatches: ['#D96868', '#F2F2F2', '#91AE6E', '#689D4B'],
+  },
+  {
+    id: 'ocean',
+    label: 'Ocean Blue',
+    description: 'Calm & professional',
+    bg: '#EFF6FF',
+    swatches: ['#1D4ED8', '#EFF6FF', '#38BDF8', '#0EA5E9'],
+  },
+  {
+    id: 'forest',
+    label: 'Forest',
+    description: 'Natural & fresh',
+    bg: '#F0FDF4',
+    swatches: ['#16A34A', '#F0FDF4', '#4ADE80', '#15803D'],
+  },
+  {
+    id: 'sunset',
+    label: 'Sunset',
+    description: 'Warm & energetic',
+    bg: '#FFF7ED',
+    swatches: ['#EA580C', '#FFF7ED', '#FB923C', '#C2410C'],
+  },
+  {
+    id: 'lavender',
+    label: 'Lavender',
+    description: 'Soft & elegant',
+    bg: '#F5F3FF',
+    swatches: ['#7C3AED', '#F5F3FF', '#A78BFA', '#6D28D9'],
+  },
+  {
+    id: 'slate',
+    label: 'Slate',
+    description: 'Clean & minimal',
+    bg: '#F8FAFC',
+    swatches: ['#475569', '#F8FAFC', '#94A3B8', '#334155'],
+  },
+  {
+    id: 'cherry',
+    label: 'Cherry Blossom',
+    description: 'Soft pink tones',
+    bg: '#FFF0F3',
+    swatches: ['#E11D48', '#FFF0F3', '#FB7185', '#BE123C'],
+  },
+  {
+    id: 'dark',
+    label: 'Midnight',
+    description: 'Dark mode palette',
+    bg: '#18181b',
+    swatches: ['#6366F1', '#18181b', '#818CF8', '#4F46E5'],
+  },
+] as const;
+
+export type SchemeId = typeof COLOR_SCHEMES[number]['id'];
+
+// ─── Sidebar accent colors per scheme ──────────────────────────────────────
+const SCHEME_ACCENT: Record<SchemeId, string> = {
+  default:  '#D96868',
+  ocean:    '#1D4ED8',
+  forest:   '#16A34A',
+  sunset:   '#EA580C',
+  lavender: '#7C3AED',
+  slate:    '#475569',
+  cherry:   '#E11D48',
+  dark:     '#6366F1',
+};
+
 interface ThemeContextValue {
   dark: boolean;
-  bgColor: string;
+  schemeId: SchemeId;
+  bgImage: string | null;   // base64 data URL or null
   fontId: FontId;
+  accentColor: string;
   setDark: (v: boolean) => void;
-  setBgColor: (v: string) => void;
+  setSchemeId: (v: SchemeId) => void;
+  setBgImage: (v: string | null) => void;
   setFontId: (v: FontId) => void;
 }
 
-const KEYS = { dark: 'st_dark', bg: 'st_bg_color', font: 'st_font_id' };
+const KEYS = {
+  dark:     'st_dark',
+  scheme:   'st_scheme',
+  bgImage:  'st_bg_image',
+  font:     'st_font_id',
+};
+
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+// ─── Google Fonts loader ────────────────────────────────────────────────────
 const GFONTS: Partial<Record<FontId, string>> = {
   inter:   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
   poppins: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap',
@@ -41,12 +125,15 @@ function loadFont(id: FontId) {
   document.head.appendChild(link);
 }
 
-// Single <style> tag we keep updated
+// ─── CSS injector ───────────────────────────────────────────────────────────
 const STYLE_ID = 'st-theme-override';
 
-function buildDarkCSS(): string {
+function buildDarkCSS(accent: string): string {
   return `
-    body, html { background-color: #18181b !important; color: #fafafa !important; }
+    body, html {
+      background-color: #18181b !important;
+      color: #fafafa !important;
+    }
     .card { background-color: #27272a !important; border-color: #3f3f46 !important; box-shadow: 0 1px 4px rgba(0,0,0,0.5) !important; }
     header.bg-white, header { background-color: #1c1c1f !important; border-color: #3f3f46 !important; }
     .bg-white { background-color: #27272a !important; }
@@ -74,44 +161,76 @@ function buildDarkCSS(): string {
     .btn-ghost:hover { background-color: #3f3f46 !important; }
     .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.5) !important; }
     .rounded-xl.border { border-color: #3f3f46 !important; }
+    /* active nav item uses scheme accent */
+    [style*="background: ${accent}"] { background: ${accent} !important; }
   `;
 }
 
-function buildLightCSS(bg: string): string {
+function buildLightCSS(bg: string, bgImage: string | null): string {
+  if (bgImage) {
+    return `
+      body, html {
+        background-image: url("${bgImage}") !important;
+        background-size: cover !important;
+        background-attachment: fixed !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+      }
+    `;
+  }
   return `body, html { background-color: ${bg} !important; }`;
 }
 
-function applyCSS(dark: boolean, bg: string) {
+function applyCSS(dark: boolean, scheme: typeof COLOR_SCHEMES[number], bgImage: string | null) {
   let el = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
   if (!el) {
     el = document.createElement('style');
     el.id = STYLE_ID;
     document.head.appendChild(el);
   }
-  el.textContent = dark ? buildDarkCSS() : buildLightCSS(bg);
+  el.textContent = dark
+    ? buildDarkCSS(scheme.swatches[0])
+    : buildLightCSS(scheme.bg, bgImage);
 }
 
+// ─── Provider ───────────────────────────────────────────────────────────────
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [dark,    setDarkState] = useState<boolean>(() => localStorage.getItem(KEYS.dark) === 'true');
-  const [bgColor, setBgState]   = useState<string>(() => localStorage.getItem(KEYS.bg) ?? '#F2F2F2');
-  const [fontId,  setFontState] = useState<FontId>(() => (localStorage.getItem(KEYS.font) ?? 'inter') as FontId);
+  const [dark,     setDarkState]    = useState<boolean>(   () => localStorage.getItem(KEYS.dark)   === 'true');
+  const [schemeId, setSchemeState]  = useState<SchemeId>(  () => (localStorage.getItem(KEYS.scheme) ?? 'default') as SchemeId);
+  const [bgImage,  setBgImageState] = useState<string | null>(() => {
+    try { return localStorage.getItem(KEYS.bgImage) ?? null; } catch { return null; }
+  });
+  const [fontId,   setFontState]    = useState<FontId>(    () => (localStorage.getItem(KEYS.font)  ?? 'inter') as FontId);
+
+  const scheme = COLOR_SCHEMES.find(s => s.id === schemeId) ?? COLOR_SCHEMES[0];
+  const accentColor = SCHEME_ACCENT[schemeId];
 
   useEffect(() => {
     loadFont(fontId);
-    const font = FONTS.find(f => f.id === fontId)?.css ?? FONTS[0].css;
-    document.body.style.fontFamily = font;
-    applyCSS(dark, bgColor);
-  }, [dark, bgColor, fontId]);
+    document.body.style.fontFamily = FONTS.find(f => f.id === fontId)?.css ?? FONTS[0].css;
+    applyCSS(dark, scheme, dark ? null : bgImage);
+  }, [dark, schemeId, bgImage, fontId]);
 
-  const setDark    = (v: boolean) => { setDarkState(v);    localStorage.setItem(KEYS.dark, String(v)); };
-  const setBgColor = (v: string)  => { setBgState(v);      localStorage.setItem(KEYS.bg, v); };
-  const setFontId  = (v: FontId)  => { setFontState(v);    localStorage.setItem(KEYS.font, v); };
+  const setDark     = (v: boolean)        => { setDarkState(v);       localStorage.setItem(KEYS.dark,   String(v)); };
+  const setSchemeId = (v: SchemeId)       => { setSchemeState(v);     localStorage.setItem(KEYS.scheme, v); };
+  const setBgImage  = (v: string | null)  => {
+    setBgImageState(v);
+    if (v) { try { localStorage.setItem(KEYS.bgImage, v); } catch { toast_warn(); } }
+    else localStorage.removeItem(KEYS.bgImage);
+  };
+  const setFontId   = (v: FontId)         => { setFontState(v);       localStorage.setItem(KEYS.font,   v); };
 
   return (
-    <ThemeContext.Provider value={{ dark, bgColor, fontId, setDark, setBgColor, setFontId }}>
+    <ThemeContext.Provider value={{ dark, schemeId, bgImage, fontId, accentColor, setDark, setSchemeId, setBgImage, setFontId }}>
       {children}
     </ThemeContext.Provider>
   );
+}
+
+function toast_warn() {
+  // background image too large for localStorage — silent fail
+  console.warn('Background image too large to persist. It will reset on reload.');
 }
 
 export function useTheme(): ThemeContextValue {
