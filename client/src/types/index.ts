@@ -160,8 +160,9 @@ export interface Material {
   title: string;
   description?: string;
   fileName: string;
-  fileType: string;
+  fileType: string;       // 'PDF' | 'PPTX' | 'DOCX' | 'LINK' | etc.
   fileSize: number;
+  linkUrl?: string;       // only set for LINK type
   classId: string;
   class?: Class;
   createdAt: string;

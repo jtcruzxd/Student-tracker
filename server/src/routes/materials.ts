@@ -54,11 +54,52 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       select: {
         id: true, title: true, description: true,
         fileName: true, fileType: true, fileSize: true,
+        linkUrl: true,
         classId: true, createdAt: true, updatedAt: true,
         class: { select: { id: true, name: true, gradeLevel: true } },
       },
     });
     res.json({ success: true, data: materials });
+  } catch (e) { next(e); }
+});
+
+// POST /api/materials/link  — save a URL link (no file)
+router.post('/link', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { title, description, classId, linkUrl } = z.object({
+      title:       z.string().min(1),
+      description: z.string().optional(),
+      classId:     z.string().min(1),
+      linkUrl:     z.string().url('Must be a valid URL'),
+    }).parse(req.body);
+
+    const cls = await prisma.class.findUnique({ where: { id: classId } });
+    if (!cls) { res.status(404).json({ success: false, message: 'Class not found' }); return; }
+
+    // Derive a display label from the URL host
+    let fileName = linkUrl;
+    try { fileName = new URL(linkUrl).hostname; } catch { /* keep full url */ }
+
+    const material = await prisma.material.create({
+      data: {
+        title,
+        description: description ?? null,
+        fileName,
+        fileType: 'LINK',
+        fileSize: 0,
+        fileData: null,
+        linkUrl,
+        classId,
+      },
+      select: {
+        id: true, title: true, description: true,
+        fileName: true, fileType: true, fileSize: true,
+        linkUrl: true,
+        classId: true, createdAt: true, updatedAt: true,
+      },
+    });
+
+    res.status(201).json({ success: true, data: material });
   } catch (e) { next(e); }
 });
 
@@ -91,11 +132,13 @@ router.post('/', upload.single('file'), async (req: Request, res: Response, next
         fileType: getFileType(req.file.mimetype),
         fileSize: req.file.size,
         fileData: req.file.buffer,
+        linkUrl: null,
         classId,
       },
       select: {
         id: true, title: true, description: true,
         fileName: true, fileType: true, fileSize: true,
+        linkUrl: true,
         classId: true, createdAt: true, updatedAt: true,
       },
     });
@@ -149,20 +192,23 @@ router.get('/:id/file', async (req: Request, res: Response, next: NextFunction) 
 // PATCH /api/materials/:id  — update title/description
 router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { title, description } = z.object({
+    const { title, description, linkUrl } = z.object({
       title:       z.string().min(1).optional(),
       description: z.string().optional(),
+      linkUrl:     z.string().url().optional(),
     }).parse(req.body);
 
     const material = await prisma.material.update({
       where: { id: req.params.id },
       data: {
-        ...(title ? { title } : {}),
+        ...(title   ? { title }   : {}),
+        ...(linkUrl ? { linkUrl } : {}),
         description: description ?? null,
       },
       select: {
         id: true, title: true, description: true,
         fileName: true, fileType: true, fileSize: true,
+        linkUrl: true,
         classId: true, createdAt: true, updatedAt: true,
       },
     });

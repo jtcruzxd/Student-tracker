@@ -31,7 +31,7 @@ model Class {
   materials   Material[]
 }
 
-/// fileType: PDF | PPT | PPTX | DOC | DOCX | OTHER
+/// fileType: PDF | PPT | PPTX | DOC | DOCX | OTHER | LINK
 model Material {
   id          String   @id @default(cuid())
   title       String
@@ -39,7 +39,8 @@ model Material {
   fileName    String
   fileType    String
   fileSize    Int
-  fileData    Bytes
+  fileData    Bytes?
+  linkUrl     String?
   classId     String
   class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())

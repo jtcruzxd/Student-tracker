@@ -174,7 +174,11 @@ export const materialsApi = {
     }).then(r => r.data.data);
   },
 
-  update: (id: string, data: { title?: string; description?: string }) =>
+  addLink: (linkUrl: string, title: string, classId: string, description?: string) =>
+    api.post<ApiResponse<Material>>('/materials/link', { linkUrl, title, classId, description })
+      .then(r => r.data.data),
+
+  update: (id: string, data: { title?: string; description?: string; linkUrl?: string }) =>
     api.patch<ApiResponse<Material>>(`/materials/${id}`, data).then(r => r.data.data),
 
   delete: (id: string) => api.delete(`/materials/${id}`).then(r => r.data),
