@@ -22,9 +22,9 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         ...(classId ? { classId: classId as string } : {}),
         ...(search ? {
           OR: [
-            { fullName: { contains: search as string } },
-            { studentId: { contains: search as string } },
-            { email: { contains: search as string } },
+            { fullName: { contains: search as string, mode: 'insensitive' } },
+            { studentId: { contains: search as string, mode: 'insensitive' } },
+            { email: { contains: search as string, mode: 'insensitive' } },
           ],
         } : {}),
       },
