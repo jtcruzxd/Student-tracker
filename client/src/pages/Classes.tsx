@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Trash2, Pencil, GraduationCap, Users } from 'lucide-react';
+import { Plus, Trash2, Pencil, GraduationCap, Users, Search, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { classesApi } from '../api';
 import type { Class } from '../types';
@@ -59,6 +59,7 @@ function ClassForm({ form, setForm, errors }: {
 export default function Classes() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [modal, setModal] = useState<'add' | 'edit' | null>(null);
   const [editTarget, setEditTarget] = useState<Class | null>(null);
   const [form, setForm] = useState({ ...INIT_FORM });
@@ -108,6 +109,15 @@ export default function Classes() {
     finally { setDeleting(false); }
   };
 
+  const filtered = classes.filter(c => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return c.name.toLowerCase().includes(q) ||
+      c.gradeLevel.toLowerCase().includes(q) ||
+      (c.section ?? '').toLowerCase().includes(q) ||
+      c.schoolYear.toLowerCase().includes(q);
+  });
+
   return (
     <div className="space-y-5 max-w-4xl">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -116,6 +126,24 @@ export default function Classes() {
           <p className="text-sm text-gray-500 mt-0.5">{classes.length} class{classes.length !== 1 ? 'es' : ''}</p>
         </div>
         <button className="btn-primary" onClick={openAdd}><Plus size={16} /> Add Class</button>
+      </div>
+
+      {/* Search */}
+      <div className="card p-4">
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            className="input pl-9 pr-8"
+            placeholder="Search classes…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {search && (
+            <button className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" onClick={() => setSearch('')}>
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? <PageLoader /> : classes.length === 0 ? (
@@ -127,9 +155,13 @@ export default function Classes() {
             action={<button className="btn-primary btn-sm" onClick={openAdd}><Plus size={14} /> Add Class</button>}
           />
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="card">
+          <EmptyState icon={<GraduationCap size={28} />} title="No classes match your search" description={`No results for "${search}"`} />
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {classes.map(c => (
+          {filtered.map(c => (
             <div key={c.id} className="card p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">

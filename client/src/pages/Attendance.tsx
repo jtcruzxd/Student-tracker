@@ -123,12 +123,16 @@ export default function Attendance() {
 
   const openEdit = (session: AttendanceSession) => {
     setEditSession(session);
-    setEditRecords(session.records.map(r => ({
-      studentId: r.studentId,
-      name: r.student?.fullName ?? r.studentId,
-      status: r.status,
-      notes: r.notes ?? '',
-    })));
+    setEditRecords(
+      [...session.records]
+        .sort((a, b) => (a.student?.fullName ?? '').localeCompare(b.student?.fullName ?? ''))
+        .map(r => ({
+          studentId: r.studentId,
+          name: r.student?.fullName ?? r.studentId,
+          status: r.status,
+          notes: r.notes ?? '',
+        }))
+    );
   };
 
   const handleSaveEdit = async () => {
@@ -282,7 +286,9 @@ export default function Attendance() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {session.records.map(r => (
+                      {[...session.records]
+                        .sort((a, b) => (a.student?.fullName ?? '').localeCompare(b.student?.fullName ?? ''))
+                        .map(r => (
                         <tr key={r.id} className="hover:bg-gray-50">
                           <td className="table-td font-medium">{r.student?.fullName}</td>
                           <td className="table-td"><AttendanceBadge status={r.status} /></td>

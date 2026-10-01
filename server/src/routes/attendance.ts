@@ -34,7 +34,7 @@ router.get('/sessions', async (req: Request, res: Response, next: NextFunction) 
       },
       include: {
         class: true,
-        records: { include: { student: true } },
+        records: { include: { student: true }, orderBy: { student: { fullName: 'asc' } } },
         _count: { select: { records: true } },
       },
       orderBy: { date: 'desc' },
@@ -50,7 +50,7 @@ router.get('/sessions/:id', async (req: Request, res: Response, next: NextFuncti
       where: { id: req.params.id },
       include: {
         class: true,
-        records: { include: { student: { include: { class: true } } } },
+        records: { include: { student: { include: { class: true } } }, orderBy: { student: { fullName: 'asc' } } },
       },
     });
     if (!session) { res.status(404).json({ success: false, message: 'Session not found' }); return; }

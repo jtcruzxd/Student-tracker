@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Plus, Trash2, Pencil, Filter, ClipboardList, ChevronDown, Save } from 'lucide-react';
+import { Plus, Trash2, Pencil, Filter, ClipboardList, ChevronDown, Save, Search, X } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { activitiesApi, classesApi } from '../api';
@@ -83,6 +83,7 @@ export default function Activities() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [filterClass, setFilterClass] = useState('');
   const [filterType, setFilterType] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -194,6 +195,14 @@ export default function Activities() {
     setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   };
 
+  const filtered = activities.filter(a => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return a.title.toLowerCase().includes(q) ||
+      (a.description ?? '').toLowerCase().includes(q) ||
+      (a.class?.name ?? '').toLowerCase().includes(q);
+  });
+
   return (
     <div className="space-y-5 max-w-6xl">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -206,6 +215,20 @@ export default function Activities() {
 
       {/* Filters */}
       <div className="card p-4 flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-40">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            className="input pl-9 pr-8 w-full"
+            placeholder="Search activities…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {search && (
+            <button className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" onClick={() => setSearch('')}>
+              <X size={14} />
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <Filter size={15} className="text-gray-400" />
           <select className="input w-48" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
@@ -217,8 +240,8 @@ export default function Activities() {
           <option value="">All Types</option>
           {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
-        {(filterClass || filterType) && (
-          <button className="btn-ghost btn-sm" onClick={() => { setFilterClass(''); setFilterType(''); }}>Clear</button>
+        {(search || filterClass || filterType) && (
+          <button className="btn-ghost btn-sm" onClick={() => { setSearch(''); setFilterClass(''); setFilterType(''); }}>Clear</button>
         )}
       </div>
 
@@ -232,9 +255,13 @@ export default function Activities() {
             action={<button className="btn-primary btn-sm" onClick={openAdd}><Plus size={14} /> Create Activity</button>}
           />
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="card">
+          <EmptyState icon={<ClipboardList size={28} />} title="No activities match your search" description={`No results for "${search}"`} />
+        </div>
       ) : (
         <div className="space-y-3">
-          {activities.map(a => {
+          {filtered.map(a => {
             const isExp = expanded.has(a.id);
             const scores = a.scores ?? [];
             const scored = scores.filter(s => s.score != null).length;
