@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Search, Filter, Trash2, Pencil, ChevronUp, ChevronDown, Users, Eye, ArrowDownAZ, ArrowUpAZ, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -77,6 +77,7 @@ export default function Students() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [searchParams] = useSearchParams();
   const [filterClass, setFilterClass] = useState(searchParams.get('classId') ?? '');
   const [sort, setSort] = useState<{ field: SortField; dir: SortDir }>({ field: 'fullName', dir: 'asc' });
@@ -89,16 +90,27 @@ export default function Students() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Debounce search input — wait 300ms after user stops typing
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const loadRef = useRef(0);
+
   const load = useCallback(async () => {
+    const reqId = ++loadRef.current;
     setLoading(true);
     const [s, c] = await Promise.all([
-      studentsApi.list({ search: search || undefined, classId: filterClass || undefined }),
+      studentsApi.list({ search: debouncedSearch || undefined, classId: filterClass || undefined }),
       classesApi.list(),
     ]);
+    // Ignore stale responses — only apply the most recent request
+    if (reqId !== loadRef.current) return;
     setStudents(s);
     setClasses(c);
     setLoading(false);
-  }, [search, filterClass]);
+  }, [debouncedSearch, filterClass]);
 
   useEffect(() => { load(); }, [load]);
 
