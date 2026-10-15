@@ -2,7 +2,8 @@ import api from './client';
 import type {
   Class, Student, AttendanceSession, AttendanceRecord,
   GradeEntry, Activity, ActivityScore, DashboardData,
-  StudentStats, GradeSummary, ApiResponse, ImportResult, Material
+  StudentStats, GradeSummary, ApiResponse, ImportResult, Material,
+  GradingCriterion, StudentGradeResult,
 } from '../types';
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
@@ -205,4 +206,15 @@ export const materialsApi = {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   },
+};
+
+// ─── Grading Criteria ──────────────────────────────────────────────────────
+
+export const criteriaApi = {
+  list: (classId: string) =>
+    api.get<ApiResponse<GradingCriterion[]>>('/grading-criteria', { params: { classId } }).then(r => r.data.data),
+  save: (classId: string, criteria: { label: string; category: string; weight: number }[]) =>
+    api.put<ApiResponse<GradingCriterion[]>>(`/grading-criteria/${classId}`, { criteria }).then(r => r.data.data),
+  calculate: (classId: string) =>
+    api.get<ApiResponse<StudentGradeResult[]>>(`/grading-criteria/${classId}/calculate`).then(r => r.data.data),
 };

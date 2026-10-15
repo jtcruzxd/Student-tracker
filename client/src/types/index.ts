@@ -169,6 +169,35 @@ export interface Material {
   updatedAt: string;
 }
 
+export interface GradingCriterion {
+  id: string;
+  classId: string;
+  label: string;
+  category: string; // QUIZ | ASSIGNMENT | RECITATION | EXAM | PROJECT | CUSTOM | ATTENDANCE
+  weight: number;   // 0–100
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GradeBreakdownItem {
+  label: string;
+  category: string;
+  weight: number;
+  avg: number | null;
+  contribution: number | null;
+}
+
+export interface StudentGradeResult {
+  studentId: string;
+  studentNo: string;
+  fullName: string;
+  breakdown: GradeBreakdownItem[];
+  finalGrade: number | null;
+  transmutedGrade: number | null;
+  usedWeight: number;
+  totalWeight: number;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;

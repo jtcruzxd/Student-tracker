@@ -13,6 +13,7 @@ import activitiesRouter from './routes/activities';
 import dashboardRouter from './routes/dashboard';
 import importExportRouter from './routes/importExport';
 import materialsRouter from './routes/materials';
+import gradingCriteriaRouter from './routes/gradingCriteria';
 
 dotenv.config();
 
@@ -60,6 +61,7 @@ app.use('/api/activities', authenticate, activitiesRouter);
 app.use('/api/export', authenticate, importExportRouter);
 app.use('/api/import', authenticate, importExportRouter);
 app.use('/api/materials', authenticate, materialsRouter);
+app.use('/api/grading-criteria', authenticate, gradingCriteriaRouter);
 
 // ─── Error handlers ────────────────────────────────────────────────────────────
 app.use(notFound);

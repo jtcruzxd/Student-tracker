@@ -14,7 +14,7 @@ import Activities from './pages/Activities';
 import Classes from './pages/Classes';
 import ImportExport from './pages/ImportExport';
 import Settings from './pages/Settings';
-
+import GradeCalculator from './pages/GradeCalculator';
 import Materials from './pages/Materials';
 
 export default function App() {
@@ -49,6 +49,7 @@ export default function App() {
               <Route path="students/:id" element={<StudentProfile />} />
               <Route path="attendance" element={<Attendance />} />
               <Route path="grades" element={<Grades />} />
+              <Route path="grade-calculator" element={<GradeCalculator />} />
               <Route path="activities" element={<Activities />} />
               <Route path="materials" element={<Materials />} />
               <Route path="classes" element={<Classes />} />

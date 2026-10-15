@@ -29,6 +29,7 @@ model Class {
   activities  Activity[]
   attendanceSessions AttendanceSession[]
   materials   Material[]
+  gradingCriteria GradingCriteria[]
 }
 
 /// fileType: PDF | PPT | PPTX | DOC | DOCX | OTHER | LINK
@@ -123,6 +124,20 @@ model Activity {
   updatedAt    DateTime  @updatedAt
   scores       ActivityScore[]
   gradeEntries GradeEntry[]
+}
+
+/// Weighted grading criteria per class (e.g. QUIZ=10%, EXAM=40%)
+model GradingCriteria {
+  id        String   @id @default(cuid())
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  label     String   // display label e.g. "Quiz", "Class Standing"
+  category  String   // maps to GradeEntry.category or "ATTENDANCE"
+  weight    Float    // percentage weight 0–100
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([classId, category])
 }
 
 model ActivityScore {

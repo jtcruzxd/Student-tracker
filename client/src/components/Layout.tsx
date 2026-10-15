@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, CalendarCheck, BookOpen,
   ClipboardList, ArrowDownUp, Settings, Menu, X,
   GraduationCap, ChevronRight, LogOut, ShieldCheck,
-  Camera, Pencil, BookMarked
+  Camera, Pencil, BookMarked, Calculator
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme, COLOR_SCHEMES } from '../context/ThemeContext';
@@ -15,6 +15,7 @@ const navItems = [
   { to: '/students',      label: 'Students',          icon: Users },
   { to: '/attendance',    label: 'Attendance',        icon: CalendarCheck },
   { to: '/grades',        label: 'Grades',            icon: BookOpen },
+  { to: '/grade-calculator', label: 'Grade Calculator', icon: Calculator },
   { to: '/activities',    label: 'Activities',        icon: ClipboardList },
   { to: '/materials',     label: 'Materials',         icon: BookMarked },
   { to: '/classes',       label: 'Classes',           icon: GraduationCap },
