@@ -131,13 +131,11 @@ model GradingCriteria {
   id        String   @id @default(cuid())
   classId   String
   class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  label     String   // display label e.g. "Quiz", "Class Standing"
+  label     String   // display label e.g. "Midterm Exam", "Final Exam"
   category  String   // maps to GradeEntry.category or "ATTENDANCE"
   weight    Float    // percentage weight 0–100
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@unique([classId, category])
 }
 
 model ActivityScore {
